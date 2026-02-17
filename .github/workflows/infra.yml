@@ -1,0 +1,165 @@
+name: Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Terraform action to perform'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+      - '.github/workflows/infra.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infra/**'
+      - '.github/workflows/infra.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+env:
+  TF_VERSION: '1.7.0'
+  WORKING_DIR: './infra'
+  ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  ARM_USE_OIDC: "true"
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ============================================
+  # Terraform Plan & Apply (per environment)
+  # ============================================
+
+  terraform:
+    name: Terraform (${{ matrix.environment }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [staging, production]
+      max-parallel: 1
+    environment:
+      name: ${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action != 'plan')) && matrix.environment || '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # OIDC Federation — no secrets needed! Just these GitHub Variables:
+      #   AZURE_CLIENT_ID        — App Registration Application (client) ID
+      #   AZURE_TENANT_ID        — Directory (tenant) ID
+      #   AZURE_SUBSCRIPTION_ID  — Azure Subscription ID
+      # Run scripts/az-setup-federation.sh to configure the federated credential
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform init
+
+      - name: Select Workspace
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform workspace select ${{ matrix.environment }} || terraform workspace new ${{ matrix.environment }}
+
+      - name: Terraform Format Check
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: Terraform Validate
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform validate
+
+      # ── Plan ──────────────────────────────────────────────────────
+      - name: Terraform Plan
+        id: plan
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          terraform plan -no-color \
+            -var="subscription_id=${{ vars.AZURE_SUBSCRIPTION_ID }}" \
+            -var="tenant_id=${{ vars.AZURE_TENANT_ID }}" \
+            -out=tfplan 2>&1 | tee plan-output.txt
+          echo "plan_output<<PLAN_EOF" >> $GITHUB_OUTPUT
+          cat plan-output.txt >> $GITHUB_OUTPUT
+          echo "PLAN_EOF" >> $GITHUB_OUTPUT
+
+      # ── Post plan as PR comment ───────────────────────────────────
+      - name: Comment Plan on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const plan = `${{ steps.plan.outputs.plan_output }}`.substring(0, 60000);
+            const body = `### 🏗️ Terraform Plan — \`${{ matrix.environment }}\`
+            \`\`\`hcl
+            ${plan}
+            \`\`\`
+            *Triggered by @${{ github.actor }} on \`${{ github.event_name }}\`*`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      # ── Apply (only on main push or manual dispatch) ──────────────
+      - name: Terraform Apply
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          terraform apply -auto-approve \
+            -var="subscription_id=${{ vars.AZURE_SUBSCRIPTION_ID }}" \
+            -var="tenant_id=${{ vars.AZURE_TENANT_ID }}"
+
+      # ── Destroy (only manual dispatch) ────────────────────────────
+      - name: Terraform Destroy
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          terraform destroy -auto-approve \
+            -var="subscription_id=${{ vars.AZURE_SUBSCRIPTION_ID }}" \
+            -var="tenant_id=${{ vars.AZURE_TENANT_ID }}"
+
+      # ── Output values ─────────────────────────────────────────────
+      - name: Export Terraform Outputs
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          echo "### 📋 Terraform Outputs — ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Output | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Web App Name | $(terraform output -raw webapp_name) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Web App URL | $(terraform output -raw webapp_url) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource Group | $(terraform output -raw resource_group_name) |" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ matrix.environment }}" == "staging" ]; then
+            echo "| ACR Login Server | $(terraform output -raw acr_login_server) |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Set the \`ACR_LOGIN_SERVER\` GitHub Variable to: $(terraform output -raw acr_login_server)**" >> $GITHUB_STEP_SUMMARY
+          fi

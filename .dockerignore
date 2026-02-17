@@ -1,0 +1,8 @@
+node_modules
+.git
+.github
+CI-Pipeline
+UI-Prototype
+*.md
+.gitignore
+.vscode

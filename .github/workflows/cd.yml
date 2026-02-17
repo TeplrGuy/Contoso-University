@@ -1,0 +1,156 @@
+name: CD Pipeline
+
+# Deploys to staging and production Azure Web Apps provisioned by Terraform (infra.yml).
+# Web App names follow Terraform naming convention:
+#   Staging:    contoso-university-staging    (webapp_name from staging workspace)
+#   Production: contoso-university            (webapp_name from production workspace)
+# Uses OIDC federation — no secrets needed. Set these GitHub Variables:
+#   AZURE_CLIENT_ID        — App Registration (client) ID
+#   AZURE_TENANT_ID        — Directory (tenant) ID
+#   AZURE_SUBSCRIPTION_ID  — Azure Subscription ID
+#   ACR_LOGIN_SERVER       — ACR login server (e.g., acrcontosouniversity.azurecr.io)
+
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  ACR_LOGIN_SERVER: ${{ vars.ACR_LOGIN_SERVER }}
+  IMAGE_NAME: contoso-university
+
+jobs:
+  # ============================================
+  # Staging Environment
+  # ============================================
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.webapp-url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Web App (Staging)
+        id: deploy
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: contoso-university-staging
+          images: ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.event.workflow_run.head_sha }}
+
+  staging-smoke-tests:
+    name: Staging Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests against staging..."
+          STAGING_URL="https://contoso-university-staging.azurewebsites.net"
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$STAGING_URL" || true)
+            echo "Attempt $i: HTTP status $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "Smoke test passed!"
+              exit 0
+            fi
+            echo "Waiting 30s before retry..."
+            sleep 30
+          done
+          echo "Smoke test failed after 5 attempts! Last HTTP status: $STATUS"
+          exit 1
+
+  staging-dast:
+    name: Staging DAST
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    steps:
+      - uses: actions/checkout@v4
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: 'https://contoso-university-staging.azurewebsites.net'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+        continue-on-error: true
+
+  # ============================================
+  # Production Environment
+  # ============================================
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [staging-smoke-tests, staging-dast]
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.webapp-url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Web App (Production)
+        id: deploy
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: contoso-university
+          images: ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.event.workflow_run.head_sha }}
+
+  production-smoke-tests:
+    name: Production Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests against production..."
+          PROD_URL="https://contoso-university.azurewebsites.net"
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$PROD_URL" || true)
+            echo "Attempt $i: HTTP status $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "Smoke test passed!"
+              exit 0
+            fi
+            echo "Waiting 30s before retry..."
+            sleep 30
+          done
+          echo "Smoke test failed after 5 attempts! Last HTTP status: $STATUS"
+          exit 1
+
+  production-dast:
+    name: Production DAST Monitoring
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    steps:
+      - uses: actions/checkout@v4
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: 'https://contoso-university.azurewebsites.net'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+        continue-on-error: true
