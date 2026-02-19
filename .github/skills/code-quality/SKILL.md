@@ -28,7 +28,7 @@ You are a code quality guardian for this React + TypeScript + Vite + Tailwind CS
 
 ### React
 - Functional components with hooks only
-- Named exports for components: `export default function ComponentName()`
+- Default exports for components: `export default function ComponentName()`
 - Keep components focused — one responsibility per component
 - Extract reusable logic into custom hooks (`src/hooks/`)
 - Use React Router `<NavLink>` for navigation with active states

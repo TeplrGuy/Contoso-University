@@ -27,7 +27,7 @@ if echo "$TOOL_INPUT" | grep -qE "src/(pages|components)/"; then
   MODIFIED_FILES=$(echo "$TOOL_INPUT" | grep -oE "src/(pages|components)/[A-Za-z]+\.(tsx|ts)" || true)
 
   for file in $MODIFIED_FILES; do
-    PAGE_NAME=$(basename "$file" .tsx | sed 's/Page$//' | tr '[:upper:]' '[:lower:]')
+    PAGE_NAME=$(basename "$file" .tsx | sed 's/Page$//' | sed -E 's/([a-z0-9])([A-Z])/\1-\2/g' | tr '[:upper:]' '[:lower:]')
     if [ -f "tests/${PAGE_NAME}.spec.ts" ]; then
       echo "   ✅ Test exists: tests/${PAGE_NAME}.spec.ts"
     else

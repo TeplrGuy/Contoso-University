@@ -33,19 +33,14 @@ export default function AssistantPage() {
 
     try {
       const responses = await client.sendMessage(message);
-      setMessages(prev => [...prev, ...responses.filter(r => r.role === 'user' ? false : true)]);
-      // Add the user message manually since client tracks it internally
-      setMessages(prev => {
-        const userMsg: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: 'user',
-          content: message,
-          timestamp: new Date(),
-        };
-        // Insert user message before the responses
-        const withoutNew = prev.slice(0, prev.length - responses.filter(r => r.role !== 'user').length);
-        return [...withoutNew, userMsg, ...responses.filter(r => r.role !== 'user')];
-      });
+      const userMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: message,
+        timestamp: new Date(),
+      };
+      const assistantResponses = responses.filter(r => r.role !== 'user');
+      setMessages(prev => [...prev, userMsg, ...assistantResponses]);
     } finally {
       setIsLoading(false);
       inputRef.current?.focus();
@@ -148,12 +143,14 @@ export default function AssistantPage() {
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSend()}
           placeholder="Ask about students, courses, or faculty..."
+          aria-label="Ask the AI Campus Assistant"
           className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
           disabled={isLoading}
         />
         <button
           onClick={() => handleSend()}
           disabled={!input.trim() || isLoading}
+          aria-label="Send message"
           className="px-4 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Send className="w-5 h-5" />

@@ -19,8 +19,8 @@ test.describe('AI Assistant Page', () => {
   });
 
   test('sends a message and receives a response', async ({ page }) => {
-    await page.getByPlaceholder('Ask about students').fill('Show university statistics');
-    await page.getByRole('button', { name: '' }).filter({ has: page.locator('svg') }).last().click();
+    await page.getByLabel('Ask the AI Campus Assistant').fill('Show university statistics');
+    await page.getByRole('button', { name: 'Send message' }).click();
     await expect(page.getByText('University Overview')).toBeVisible({ timeout: 5000 });
   });
 
