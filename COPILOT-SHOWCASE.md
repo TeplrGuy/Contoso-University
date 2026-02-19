@@ -13,6 +13,7 @@ This document describes all GitHub Copilot integrations in the Contoso Universit
 5. [Copilot CLI Developer Scripts](#5-copilot-cli-developer-scripts)
 6. [Agentic Workflows](#6-agentic-workflows)
 7. [Playwright Test Infrastructure](#7-playwright-test-infrastructure)
+8. [Repeatable Productivity Kit](#8-repeatable-productivity-kit)
 
 ---
 
@@ -108,6 +109,7 @@ Reusable skill definitions that Copilot auto-discovers and loads contextually.
 | `playwright-testing` | Teaches the agent how to write Playwright tests for this project (conventions, selectors, patterns) |
 | `documentation-sync` | Ensures docs stay in sync with code changes (README, COPILOT-SHOWCASE, JSDoc) |
 | `code-quality` | Enforces TypeScript, Tailwind CSS, React, ESLint, and conventional commit standards |
+| `productivity-orchestrator` | Enforces plan → implement → validate → review workflow with policy and approval gates |
 
 ### Structure
 
@@ -120,6 +122,8 @@ Reusable skill definitions that Copilot auto-discovers and loads contextually.
     SKILL.md              — Documentation checklist and style guide
   code-quality/
     SKILL.md              — Tech stack rules and quality checks
+  productivity-orchestrator/
+    SKILL.md              — Skill-first orchestration and critical review protocol
 ```
 
 ---
@@ -200,6 +204,7 @@ Copilot agentic workflows using `.md` files with YAML front-matter.
 | `pr-fix.md` | `/pr-fix` comment | Auto-fix failing PR checks |
 | `issue-triage.md` | Issue opened/reopened | Auto-label and triage new issues |
 | `contribution-guidelines.md` | PR opened/edited | Check PR compliance with CONTRIBUTING.md |
+| `productivity-governor.md` | `/productivity-check` comment | Validate guardrails, validation evidence, and approval readiness |
 | **`release-notes.md`** | Release published | Generate categorized release notes from merged PRs |
 
 ---
@@ -231,18 +236,36 @@ npx playwright show-report  # View HTML report
 
 ---
 
+## 8. Repeatable Productivity Kit
+
+**Location:** `.github/copilot-instructions.md`, `.github/skills/productivity-orchestrator/`, `.github/workflows/productivity-governor.md`, `.github/pull_request_template.md`
+
+This layer turns Copilot usage into a repeatable team operating model:
+
+- **Fixed guardrails** in `copilot-instructions.md` (minimal edits, required validation, safe defaults)
+- **Skill-first orchestration** in `productivity-orchestrator/SKILL.md` (plan, implement, validate, critical review)
+- **Agentic governance** in `productivity-governor.md` via `/productivity-check` for PR evidence checks
+- **Approval/policy gates** in `pull_request_template.md` so every PR carries test, risk, and security evidence
+
+These assets are intentionally portable so other repos can copy them as a starter kit.
+
+---
+
 ## Architecture Overview
 
 ```
 contoso-university/
 ├── .github/
+│   ├── copilot-instructions.md      # 🛡️ Fixed guardrails
 │   ├── hooks/                    # 🪝 Copilot Hooks
 │   │   ├── hooks.json
 │   │   └── scripts/
+│   ├── pull_request_template.md  # ✅ Approval/policy checklist
 │   ├── skills/                   # 🧠 Agent Skills
 │   │   ├── playwright-testing/
 │   │   ├── documentation-sync/
-│   │   └── code-quality/
+│   │   ├── code-quality/
+│   │   └── productivity-orchestrator/
 │   └── workflows/                # ⚙️ CI/CD + Agentic Workflows
 │       ├── ci.yml / cd.yml
 │       ├── copilot-review.yml    # CLI in CI
@@ -250,6 +273,7 @@ contoso-university/
 │       ├── pr-fix.md             # Agentic
 │       ├── issue-triage.md       # Agentic
 │       ├── contribution-guidelines.md  # Agentic
+│       ├── productivity-governor.md     # Agentic governance
 │       └── release-notes.md      # Agentic (NEW)
 ├── scripts/copilot/              # 🖥️ CLI Developer Scripts
 ├── src/copilot/                  # 🤖 SDK Integration
