@@ -14,6 +14,7 @@
       {
         "type": "command",
         "bash": "./.github/hooks/scripts/pre-tool-check.sh",
+        "powershell": "Write-Host 'Session hooks require bash — run via WSL or Git Bash'",
         "cwd": ".",
         "timeoutSec": 10
       }
@@ -22,6 +23,7 @@
       {
         "type": "command",
         "bash": "./.github/hooks/scripts/post-tool-check.sh",
+        "powershell": "Write-Host 'Session hooks require bash — run via WSL or Git Bash'",
         "cwd": ".",
         "timeoutSec": 10
       }
@@ -30,6 +32,7 @@
       {
         "type": "command",
         "bash": "./.github/hooks/scripts/session-end.sh",
+        "powershell": "Write-Host 'Session hooks require bash — run via WSL or Git Bash'",
         "cwd": ".",
         "timeoutSec": 30
       }

@@ -39,7 +39,7 @@ fi
 echo ""
 echo "📋 Test coverage check:"
 for page in src/pages/*.tsx; do
-  PAGE_NAME=$(basename "$page" .tsx | sed 's/Page$//' | tr '[:upper:]' '[:lower:]')
+  PAGE_NAME=$(basename "$page" .tsx | sed 's/Page$//' | sed -E 's/([a-z0-9])([A-Z])/\1-\2/g' | tr '[:upper:]' '[:lower:]')
   if [ -f "tests/${PAGE_NAME}.spec.ts" ]; then
     echo "  ✅ $page → tests/${PAGE_NAME}.spec.ts"
   else
