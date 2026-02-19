@@ -32,18 +32,19 @@ jobs:
       - name: Get PR diff
         id: diff
         run: |
-          git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr-diff.txt
-          echo "diff_size=$(wc -l < /tmp/pr-diff.txt)" >> "$GITHUB_OUTPUT"
+          git diff origin/${{ github.base_ref }}...HEAD > .copilot-pr-diff.txt
+          echo "diff_size=$(wc -l < .copilot-pr-diff.txt)" >> "$GITHUB_OUTPUT"
 
       - name: AI Review Analysis
         if: steps.diff.outputs.diff_size > 0
         env:
           GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
         run: |
-          cat /tmp/pr-diff.txt | copilot -sp "
+          copilot --allow-all-tools -s -p "
           You are reviewing a pull request for the Contoso University project (React + TypeScript + Vite + Tailwind CSS).
+          Review the PR diff from @.copilot-pr-diff.txt before writing your review.
 
-          Analyze this diff and provide a concise code review covering:
+          Analyze the diff and provide a concise code review covering:
           1. **Summary**: What does this PR do? (2-3 sentences)
           2. **Quality**: Any bugs, type errors, or logic issues?
           3. **Testing**: Are Playwright tests included for UI changes? (tests should be in tests/*.spec.ts)

@@ -140,7 +140,7 @@ A GitHub Actions workflow that uses `copilot -sp` to generate AI code reviews on
 
 1. PR is opened or updated against `main`
 2. Workflow gets the PR diff
-3. Pipes diff to `copilot -sp` with a review prompt
+3. Saves diff to `.copilot-pr-diff.txt` and runs `copilot --allow-all-tools -s -p` with `@.copilot-pr-diff.txt`
 4. Posts the AI review as a PR comment
 
 ### Workflow
@@ -149,7 +149,7 @@ A GitHub Actions workflow that uses `copilot -sp` to generate AI code reviews on
 # .github/workflows/copilot-review.yml
 - name: AI Review Analysis
   run: |
-    cat /tmp/pr-diff.txt | copilot -sp "Review this PR for quality, testing, and style..."
+    copilot --allow-all-tools -s -p "Read @.copilot-pr-diff.txt and review this PR for quality, testing, and style..."
 ```
 
 ---
