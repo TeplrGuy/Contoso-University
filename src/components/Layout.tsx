@@ -1,11 +1,12 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { GraduationCap, Home, Users, BookOpen, UserCheck } from 'lucide-react';
+import { GraduationCap, Home, Users, BookOpen, UserCheck, Sparkles } from 'lucide-react';
 
 const navItems = [
   { to: '/', label: 'Home', icon: Home },
   { to: '/students', label: 'Students', icon: Users },
   { to: '/courses', label: 'Courses', icon: BookOpen },
   { to: '/teachers', label: 'Teachers', icon: UserCheck },
+  { to: '/assistant', label: 'AI Assistant', icon: Sparkles },
 ];
 
 export default function Layout() {
