@@ -11,7 +11,7 @@ SNAPSHOT_FILE=".github/hooks/.pre-tool-snapshot"
 
 echo "[$TIMESTAMP] ✔️  postToolUse triggered" >> "$HOOK_LOG"
 
-# Compare current src/ files against pre-tool snapshot to detect new/changed files
+# Compare current src/ files against pre-tool snapshot to detect new files
 CURRENT_FILES=$(find src -name "*.tsx" -o -name "*.ts" 2>/dev/null | sort)
 
 if [ -f "$SNAPSHOT_FILE" ]; then
@@ -30,7 +30,8 @@ fi
 MISSING_TESTS=0
 for page in src/pages/*.tsx; do
   [ -f "$page" ] || continue
-  PAGE_NAME=$(basename "$page" .tsx | sed 's/Page$//' | tr '[:upper:]' '[:lower:]')
+  PAGE_BASENAME=$(basename "$page" .tsx | sed 's/Page$//')
+  PAGE_NAME=$(echo "$PAGE_BASENAME" | sed -E 's/([a-z0-9])([A-Z])/\1-\2/g' | tr '[:upper:]' '[:lower:]')
   if [ ! -f "tests/${PAGE_NAME}.spec.ts" ]; then
     echo "⚠️  Missing test: $page has no tests/${PAGE_NAME}.spec.ts"
     MISSING_TESTS=$((MISSING_TESTS + 1))

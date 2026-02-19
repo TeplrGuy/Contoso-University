@@ -54,7 +54,8 @@ TESTED_PAGES=0
 for page in src/pages/*.tsx; do
   [ -f "$page" ] || continue
   TOTAL_PAGES=$((TOTAL_PAGES + 1))
-  PAGE_NAME=$(basename "$page" .tsx | sed 's/Page$//' | tr '[:upper:]' '[:lower:]')
+  PAGE_BASENAME=$(basename "$page" .tsx | sed 's/Page$//')
+  PAGE_NAME=$(echo "$PAGE_BASENAME" | sed -E 's/([a-z0-9])([A-Z])/\1-\2/g' | tr '[:upper:]' '[:lower:]')
   if [ -f "tests/${PAGE_NAME}.spec.ts" ]; then
     TESTED_PAGES=$((TESTED_PAGES + 1))
     echo "  ✅ $(basename "$page") → tests/${PAGE_NAME}.spec.ts"

@@ -19,6 +19,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  issues: write
 
 env:
   ACR_LOGIN_SERVER: ${{ vars.ACR_LOGIN_SERVER }}
