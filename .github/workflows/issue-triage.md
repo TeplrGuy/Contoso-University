@@ -45,7 +45,7 @@ This is a React + TypeScript + Vite web application for a university student inf
 1. **Retrieve the issue** using `get_issue`. If it's spam or bot-generated, add a one-sentence comment and exit.
 
 2. **Gather context**:
-   - Fetch available labels with `gh label list`
+   - Fetch available labels using GitHub labels API/tools
    - Fetch any comments on the issue
    - Search for similar issues
    - List recent open issues
