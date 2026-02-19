@@ -7,6 +7,7 @@ description: |
 on:
   slash_command:
     name: pr-fix
+    events: [pull_request_comment, pull_request_review_comment]
   reaction: "eyes"
 
 permissions: read-all
@@ -23,6 +24,9 @@ safe-outputs:
 tools:
   web-fetch:
   bash: true
+  github:
+    toolsets: [default]
+    lockdown: false
 
 timeout-minutes: 20
 
@@ -44,6 +48,7 @@ This is a React + TypeScript + Vite web application with:
 ## Fix Protocol
 
 1. **Read the PR** and any comments, especially instructions from: "${{ needs.activation.outputs.text }}"
+   - Trigger note: the comment must start with `/pr-fix` as the first word, and the comment/review must be submitted (not pending draft review comments).
    - If no specific instructions, fix based on CI failures
 
 2. **Analyze failures**: Get workflow run logs from failing checks. Look for:

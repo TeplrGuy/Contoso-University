@@ -134,6 +134,8 @@ Reusable skill definitions that Copilot auto-discovers and loads contextually.
 
 A GitHub Actions workflow that uses `copilot -sp` to generate AI code reviews on pull requests.
 
+> Requires repository secret: `COPILOT_GITHUB_TOKEN` (fine-grained PAT with Copilot Requests permission).
+
 ### How It Works
 
 1. PR is opened or updated against `main`
@@ -156,7 +158,7 @@ A GitHub Actions workflow that uses `copilot -sp` to generate AI code reviews on
 
 **Location:** `scripts/copilot/`
 
-Shell scripts that leverage `copilot -p` for local developer productivity.
+Shell scripts that leverage `copilot -sp` for local developer productivity.
 
 ### Available Scripts
 
@@ -185,8 +187,8 @@ npm run copilot:review -- src/components/Layout.tsx
 
 ### Prerequisites
 
-- [GitHub Copilot CLI](https://docs.github.com/en/copilot/github-copilot-in-the-cli) must be installed
-- Authenticated via `gh auth login`
+- [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/cli-getting-started) must be installed
+- Authenticated via `copilot` login flow or `GH_TOKEN`/`GITHUB_TOKEN`
 
 ---
 

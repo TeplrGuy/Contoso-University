@@ -2,7 +2,7 @@ name: Copilot AI Code Review
 
 # AI-powered code review using GitHub Copilot CLI.
 # Runs on pull requests and posts an AI-generated review summary as a PR comment.
-# Requires: Copilot CLI installed on the runner (via copilot-setup-steps).
+# Requires repository secret: COPILOT_GITHUB_TOKEN (fine-grained PAT with Copilot Requests permission).
 
 on:
   pull_request:
@@ -22,10 +22,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Copilot CLI
-        uses: github/copilot-cli-action@v1
+      - uses: actions/setup-node@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          node-version: 22
+
+      - name: Install Copilot CLI
+        run: npm install -g @github/copilot
 
       - name: Get PR diff
         id: diff
@@ -35,6 +37,8 @@ jobs:
 
       - name: AI Review Analysis
         if: steps.diff.outputs.diff_size > 0
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
         run: |
           cat /tmp/pr-diff.txt | copilot -sp "
           You are reviewing a pull request for the Contoso University project (React + TypeScript + Vite + Tailwind CSS).
