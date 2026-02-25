@@ -7,7 +7,14 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "npx playwright test",
+    "test:e2e": "npx playwright test",
+    "test:list": "npx playwright test --list",
+    "copilot:audit": "bash scripts/copilot/audit.sh",
+    "copilot:docs": "bash scripts/copilot/document.sh",
+    "copilot:onboard": "bash scripts/copilot/onboard.sh",
+    "copilot:review": "bash scripts/copilot/review-file.sh"
   },
   "dependencies": {
     "lucide-react": "^0.574.0",
@@ -17,6 +24,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/vite": "^4.1.18",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",

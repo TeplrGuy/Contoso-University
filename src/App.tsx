@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage';
 import StudentsPage from './pages/StudentsPage';
 import CoursesPage from './pages/CoursesPage';
 import TeachersPage from './pages/TeachersPage';
+import AssistantPage from './pages/AssistantPage';
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
           <Route path="students" element={<StudentsPage />} />
           <Route path="courses" element={<CoursesPage />} />
           <Route path="teachers" element={<TeachersPage />} />
+          <Route path="assistant" element={<AssistantPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

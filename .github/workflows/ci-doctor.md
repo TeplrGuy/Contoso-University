@@ -29,6 +29,9 @@ safe-outputs:
 tools:
   cache-memory: true
   web-fetch:
+  github:
+    toolsets: [default]
+    lockdown: false
 
 timeout-minutes: 10
 
