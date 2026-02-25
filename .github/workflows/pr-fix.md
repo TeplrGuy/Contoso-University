@@ -9,7 +9,10 @@ on:
     name: pr-fix
   reaction: "eyes"
 
-permissions: read-all
+permissions:
+  pull-requests: write
+  issues: write
+  contents: write
 
 network: defaults
 

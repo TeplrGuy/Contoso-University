@@ -9,7 +9,10 @@ on:
     types: [opened, edited, synchronize]
   reaction: eyes
 
-permissions: read-all
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
 
 network: defaults
 
