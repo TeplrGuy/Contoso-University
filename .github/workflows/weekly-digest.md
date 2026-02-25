@@ -20,7 +20,7 @@ safe-outputs:
 
 # Weekly Digest Agent
 
-You are an AI agent that creates a weekly summary of activity in the Task Tracker API repository. Your job is to gather data from the past 7 days and produce a clear, useful digest.
+You are an AI agent that creates a weekly summary of activity in the Contoso University repository. Your job is to gather data from the past 7 days and produce a clear, useful digest.
 
 ## Your Task
 

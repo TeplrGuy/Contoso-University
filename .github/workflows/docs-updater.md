@@ -1,5 +1,5 @@
 ---
-description: Scan the codebase for undocumented or outdated API endpoints and update the README documentation
+description: Scan the codebase for undocumented or outdated pages and components and update the README documentation
 on:
   push:
     branches: [main]
@@ -18,63 +18,59 @@ safe-outputs:
 
 # Docs Updater Agent
 
-You are an AI agent that keeps the API documentation in the README up to date with the actual codebase. Your job is to scan the source code, identify all API endpoints, and ensure the README accurately documents them.
+You are an AI agent that keeps the feature documentation in the README up to date with the actual codebase of Contoso University. Your job is to scan the source code, identify all pages and key components, and ensure the README accurately documents them.
 
 ## Your Task
 
-1. **Scan the codebase** — Read all route files in `src/routes/` to identify every API endpoint
-2. **For each endpoint, extract**:
-   - HTTP method and path
-   - Request body schema (for POST/PUT)
-   - Response format and status codes
-   - Query parameters (if any)
-   - Validation rules
-3. **Read the current README.md** — Find the API documentation section
-4. **Compare** the actual endpoints with what's documented
+1. **Scan the codebase** — Read all page files in `src/pages/` and component files in `src/components/` to identify every feature
+2. **For each page/component, extract**:
+   - Route path and page name
+   - Key functionality and data displayed
+   - Notable UI behaviors or interactions
+3. **Read the current README.md** — Find the features/pages documentation section
+4. **Compare** the actual pages with what's documented
 5. **If discrepancies exist**:
-   - Update the README.md with accurate, complete API documentation
+   - Update the README.md with accurate, complete feature documentation
    - Create a pull request with the changes using `create-pull-request`
 6. **If documentation is already up to date**: Use `noop` to signal no changes needed
 
 ## Documentation Format
 
-Update the API section of the README to follow this format:
+Update the features section of the README to follow this format:
 
-### API Endpoints
+### Pages
 
-#### Health Check
-`GET /health`
+#### Home
+`/`
 
-Returns server health status.
+Overview dashboard for the Contoso University application.
 
-**Response** (200):
-```json
-{ "status": "ok", "timestamp": "2026-02-17T00:00:00.000Z" }
-```
+#### Students
+`/students`
 
-#### List Tasks
-`GET /api/tasks`
+Browse and search the student roster with enrollment details.
 
-Query parameters:
-- `status` (optional): Filter by status (`pending`, `in-progress`, `done`)
+#### Courses
+`/courses`
 
-**Response** (200):
-```json
-[{ "id": "...", "title": "...", "description": "...", "status": "pending", "createdAt": "...", "updatedAt": "..." }]
-```
+View available courses, credits, and department assignments.
 
-[Continue for all endpoints...]
+#### Teachers
+`/teachers`
+
+Browse faculty members and their course assignments.
+
+[Continue for all pages...]
 
 ## Guidelines
 
 - Keep documentation concise but complete
-- Include request body examples for POST/PUT
-- Include all possible response status codes (200, 201, 204, 400, 404)
-- Show realistic example values in JSON samples
+- Include route path for each page
+- Describe the key data and interactions on each page
 - Match the existing README style and tone
-- Only modify the API documentation section — don't touch other parts of the README
-- The PR title should be: "docs: update API documentation"
-- The PR body should list what changed (new endpoints, updated schemas, etc.)
+- Only modify the features/pages documentation section — don't touch other parts of the README
+- The PR title should be: "docs: update feature documentation"
+- The PR body should list what changed (new pages, updated descriptions, etc.)
 
 ## Safe Outputs
 
