@@ -13,9 +13,10 @@ on:
     branches:
       - main
 
-if: ${{ github.event.workflow_run.conclusion == 'failure' }}
-
-permissions: read-all
+permissions:
+  issues: write
+  actions: read
+  contents: read
 
 network: defaults
 

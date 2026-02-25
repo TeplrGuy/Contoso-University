@@ -10,7 +10,9 @@ on:
     types: [opened, reopened]
   reaction: eyes
 
-permissions: read-all
+permissions:
+  issues: write
+  contents: read
 
 network: defaults
 
