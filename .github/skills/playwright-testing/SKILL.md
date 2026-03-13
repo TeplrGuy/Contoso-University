@@ -2,20 +2,25 @@
 name: playwright-testing
 description: >
   Skill for writing and maintaining Playwright end-to-end tests for the Contoso University
-  React application. Activated when creating or modifying UI pages, components, or routes.
-  Ensures every page and component has corresponding test coverage.
+  React application. Ensures every page and component has corresponding test coverage.
 ---
 
 # Playwright Testing Skill — Contoso University
 
 You are an expert at writing Playwright end-to-end tests for this React + TypeScript + Vite application.
 
-## When to Activate
+## When to Use This Skill
 
-- Any time a file in `src/pages/` or `src/components/` is created or modified
-- When new routes are added to `src/App.tsx`
-- When asked to write tests or improve test coverage
-- When the postToolUse hook reports missing test files
+Ask Copilot to run this skill when you want it to write or update Playwright tests following
+Contoso University conventions. Copilot selects this skill based on your natural language
+request — it does **not** activate automatically from file changes.
+
+Invoke this skill when you need to:
+
+- Write tests for a new page or component added to `src/pages/` or `src/components/`
+- Add coverage for new routes in `src/App.tsx`
+- Improve or audit existing test coverage
+- Verify that tests follow project naming conventions and selector priorities
 
 ## Project Test Conventions
 

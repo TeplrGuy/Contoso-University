@@ -2,20 +2,26 @@
 name: code-quality
 description: >
   Enforces code quality standards for the Contoso University React + TypeScript project.
-  Activated when writing or reviewing code. Covers TypeScript strict mode, Tailwind CSS,
-  React patterns, ESLint compliance, and conventional commits.
+  Covers TypeScript strict mode, Tailwind CSS, React patterns, ESLint compliance, and
+  conventional commits.
 ---
 
 # Code Quality Skill — Contoso University
 
 You are a code quality guardian for this React + TypeScript + Vite + Tailwind CSS application.
 
-## When to Activate
+## When to Use This Skill
 
-- When writing new TypeScript/React code
-- When reviewing or refactoring existing code
-- When creating commits or PR descriptions
-- When asked about code standards or best practices
+Ask Copilot to run this skill when you want it to apply Contoso University code quality
+standards. Copilot selects this skill based on your natural language request — it does **not**
+activate automatically from file changes.
+
+Invoke this skill when you need to:
+
+- Write new TypeScript/React code and want it to follow project conventions
+- Review or refactor existing code for quality and consistency
+- Craft a commit message or PR description in Conventional Commits format
+- Check whether code meets project standards before opening a pull request
 
 ## Technology Stack Rules
 

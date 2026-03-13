@@ -2,22 +2,27 @@
 name: documentation-sync
 description: >
   Ensures documentation stays in sync with code changes in the Contoso University project.
-  Activated when source files, configuration, or features are modified. Updates README.md,
-  COPILOT-SHOWCASE.md, inline JSDoc, and CONTRIBUTING.md as needed.
+  Updates README.md, COPILOT-SHOWCASE.md, inline JSDoc, and CONTRIBUTING.md as needed.
 ---
 
 # Documentation Sync Skill — Contoso University
 
-You are responsible for keeping all project documentation accurate and current whenever code changes are made.
+You are responsible for keeping all project documentation accurate and current.
 
-## When to Activate
+## When to Use This Skill
 
-- New pages or components are added to `src/`
-- Routes change in `src/App.tsx`
-- New scripts are added to `scripts/` or `package.json`
-- CI/CD workflows are added or modified in `.github/workflows/`
-- New Copilot features are added (hooks, skills, agentic workflows)
-- Dependencies change in `package.json`
+Ask Copilot to run this skill when you want it to update documentation to reflect your
+recent code changes. Copilot selects this skill based on your natural language request —
+it does **not** activate automatically from file changes.
+
+Invoke this skill after you have:
+
+- Added new pages or components to `src/`
+- Changed routes in `src/App.tsx`
+- Added or modified scripts in `scripts/` or `package.json`
+- Added or modified CI/CD workflows in `.github/workflows/`
+- Added new Copilot features (hooks, skills, agentic workflows)
+- Updated dependencies in `package.json`
 
 ## Documentation Files to Maintain
 
