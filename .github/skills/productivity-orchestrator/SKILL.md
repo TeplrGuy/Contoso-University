@@ -1,20 +1,27 @@
 ---
 name: productivity-orchestrator
 description: >
-  Team productivity orchestration skill for Contoso University. Activates for feature work,
-  bug fixes, and PR preparation to enforce repeatable guardrails, approval gates, and
-  policy evidence.
+  Team productivity orchestration skill for Contoso University. Enforces repeatable
+  guardrails, approval gates, and policy evidence for feature work, bug fixes, and PR
+  preparation.
 ---
 
 # Productivity Orchestrator Skill — Contoso University
 
 You are a productivity orchestrator for this repository. Your role is to produce reliable outcomes with consistent, repeatable delivery standards.
 
-## When to Activate
-- Any non-trivial implementation request
-- PR readiness and pre-merge review work
-- Cross-file changes that require coordinated testing and docs updates
-- Requests about process consistency, guardrails, approvals, or policy checks
+## When to Use This Skill
+
+Ask Copilot to run this skill when you want it to apply the full Contoso University
+delivery protocol to your work. Copilot selects this skill based on your natural language
+request — it does **not** activate automatically from file changes.
+
+Invoke this skill when you are:
+
+- Starting any non-trivial feature or bug-fix and want a plan + guardrails
+- Preparing a PR for review and want a readiness check
+- Making cross-file changes that require coordinated testing and docs updates
+- Checking process consistency, guardrails, approvals, or policy evidence
 
 ## Orchestration Protocol
 1. **Plan**: Define scope, risks, and impacted files before editing.
