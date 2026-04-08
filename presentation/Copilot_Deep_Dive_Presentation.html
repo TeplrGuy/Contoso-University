@@ -1,0 +1,1804 @@
+<!DOCTYPE html>
+<html lang="en" data-color-mode="light" data-light-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Copilot Deep Dive — CLI, IDE, and GitHub.com AI Features</title>
+  <link href="https://unpkg.com/@primer/css@21/dist/primer.css" rel="stylesheet" />
+  <style>
+    :root {
+      --brand-copilot: #6e40c9;
+      --brand-copilot-subtle: #8b5cf6;
+      --brand-success: #1a7f37;
+      --brand-danger: #cf222e;
+      --brand-warning: #9a6700;
+      --brand-info: #0969da;
+      --hero-gradient: linear-gradient(135deg, #0d1117 0%, #161b22 40%, #1c2333 100%);
+      --cli-accent: #58a6ff;
+      --ide-accent: #8b5cf6;
+      --web-accent: #f78166;
+    }
+
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; }
+
+    /* Hero */
+    .hero {
+      background: var(--hero-gradient);
+      color: #f0f6fc;
+      padding: 80px 0 64px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(110,64,201,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      left: -10%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(88,166,255,0.1) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .hero h1 { font-size: 48px; font-weight: 800; line-height: 1.1; max-width: 800px; }
+    .hero h1 .highlight { color: var(--brand-copilot-subtle); }
+    .hero h1 .cli-highlight { color: var(--cli-accent); }
+    .hero .subtitle { font-size: 20px; color: #8b949e; max-width: 720px; margin-top: 16px; line-height: 1.5; }
+    .hero .badge-row { margin-top: 24px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .hero .badge-row .Label { font-size: 14px; }
+
+    /* Section styles */
+    .section { padding: 48px 0; }
+    .section-alt { background-color: #f6f8fa; }
+    .section-dark { background: #0d1117; color: #f0f6fc; }
+    .section-title { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+    .section-lead { font-size: 18px; color: #656d76; margin-bottom: 32px; max-width: 720px; }
+    .section-dark .section-lead { color: #8b949e; }
+
+    /* Cards */
+    .feature-card {
+      border: 1px solid #d0d7de;
+      border-radius: 12px;
+      padding: 24px;
+      transition: box-shadow 0.2s, border-color 0.2s;
+      background: #fff;
+    }
+    /* Equal-height cards only when they are direct grid children */
+    .grid-2 > .feature-card,
+    .grid-3 > .feature-card,
+    .grid-4 > .feature-card { height: 100%; }
+    .feature-card:hover { border-color: var(--brand-copilot); box-shadow: 0 4px 12px rgba(110,64,201,0.1); }
+    .feature-card .card-icon { font-size: 32px; margin-bottom: 12px; }
+    .feature-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .feature-card p { font-size: 14px; color: #656d76; line-height: 1.5; }
+
+    /* Comparison table */
+    .comparison-table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 12px; overflow: hidden; border: 1px solid #d0d7de; }
+    .comparison-table thead { background: #0d1117; color: #f0f6fc; }
+    .comparison-table th { padding: 14px 16px; font-weight: 600; font-size: 14px; text-align: left; }
+    .comparison-table td { padding: 12px 16px; font-size: 14px; border-top: 1px solid #d0d7de; vertical-align: top; }
+    .comparison-table tbody tr:hover { background: #f6f8fa; }
+    .comparison-table .check { color: var(--brand-success); font-weight: 700; }
+    .comparison-table .cross { color: var(--brand-danger); font-weight: 700; }
+    .comparison-table .warn { color: var(--brand-warning); font-weight: 700; }
+
+    /* Callout */
+    .callout {
+      border-left: 4px solid var(--brand-copilot);
+      background: #f5f0ff;
+      border-radius: 0 8px 8px 0;
+      padding: 20px 24px;
+      margin: 24px 0;
+    }
+    .callout p { font-size: 16px; line-height: 1.6; color: #24292f; margin: 0; }
+    .callout strong { color: var(--brand-copilot); }
+    .callout.cli-callout { border-left-color: var(--cli-accent); background: #f0f7ff; }
+    .callout.cli-callout strong { color: var(--cli-accent); }
+    .callout.web-callout { border-left-color: var(--web-accent); background: #fff5f0; }
+    .callout.web-callout strong { color: #cf4e2e; }
+    .callout.demo-callout { border-left-color: var(--brand-success); background: #f0faf0; }
+    .callout.demo-callout strong { color: var(--brand-success); }
+
+    /* Timeline */
+    .timeline-item {
+      position: relative;
+      padding-left: 40px;
+      padding-bottom: 32px;
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 28px;
+      bottom: 0;
+      width: 2px;
+      background: #d0d7de;
+    }
+    .timeline-item:last-child::before { display: none; }
+    .timeline-dot {
+      position: absolute;
+      left: 6px;
+      top: 4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--brand-copilot);
+      background: #fff;
+    }
+    .timeline-dot.done { background: var(--brand-copilot); }
+    .timeline-dot.done::after { content: '✓'; color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; height: 100%; }
+    .timeline-item h4 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .timeline-item p { font-size: 14px; color: #656d76; }
+
+    /* Talk track */
+    .talk-track {
+      background: #0d1117;
+      color: #f0f6fc;
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin-bottom: 16px;
+    }
+    .talk-track .audience { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--brand-copilot-subtle); font-weight: 600; margin-bottom: 8px; }
+    .talk-track blockquote { margin: 0; padding: 0; border: 0; font-size: 16px; line-height: 1.6; font-style: italic; color: #c9d1d9; }
+
+    /* Code block */
+    .code-block {
+      background: #161b22;
+      color: #e6edf3;
+      border-radius: 8px;
+      padding: 16px 20px;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin: 12px 0;
+      border: 1px solid #30363d;
+    }
+    .code-block .comment { color: #8b949e; }
+    .code-block .command { color: #79c0ff; }
+    .code-block .flag { color: #d2a8ff; }
+    .code-block .string { color: #a5d6ff; }
+    .code-block .keyword { color: #ff7b72; }
+    .code-block .prompt { color: #7ee787; }
+
+    /* Agenda tracker */
+    .agenda-bar {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 32px;
+    }
+    .agenda-bar h3 { color: #f0f6fc; font-size: 16px; margin-bottom: 12px; }
+    .agenda-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      font-size: 14px;
+      color: #8b949e;
+    }
+    .agenda-item.active { color: #f0f6fc; font-weight: 600; }
+    .agenda-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .agenda-dot.cli { background: var(--cli-accent); }
+    .agenda-dot.ide { background: var(--ide-accent); }
+    .agenda-dot.web { background: var(--web-accent); }
+    .agenda-time { font-size: 12px; color: #656d76; margin-left: auto; }
+
+    /* Mode cards */
+    .mode-card {
+      border: 2px solid #d0d7de;
+      border-radius: 12px;
+      padding: 24px;
+      height: 100%;
+      background: #fff;
+      position: relative;
+    }
+    .mode-card.recommended { border-color: var(--brand-copilot); }
+    .mode-card.recommended::before {
+      content: 'Recommended for Demo';
+      position: absolute;
+      top: -12px;
+      left: 16px;
+      background: var(--brand-copilot);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .mode-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .mode-card .mode-desc { font-size: 14px; color: #656d76; margin-bottom: 12px; line-height: 1.5; }
+
+    /* Tag pills */
+    .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .tag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 12px; }
+    .tag-cli { background: #dbeafe; color: #1e40af; }
+    .tag-ide { background: #ede9fe; color: #5b21b6; }
+    .tag-web { background: #ffedd5; color: #9a3412; }
+    .tag-new { background: #dcfce7; color: #166534; }
+
+    /* Section dividers */
+    .section-divider {
+      background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+      padding: 32px 0;
+      text-align: center;
+      color: #f0f6fc;
+    }
+    .section-divider h2 { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+    .section-divider p { color: #8b949e; font-size: 16px; }
+    .section-divider .divider-icon { font-size: 40px; margin-bottom: 8px; }
+    .section-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-weight: 800;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .section-number.cli { background: var(--cli-accent); color: #0d1117; }
+    .section-number.ide { background: var(--ide-accent); color: #fff; }
+    .section-number.web { background: var(--web-accent); color: #0d1117; }
+
+    /* Permission flow */
+    .perm-flow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #f6f8fa;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .perm-flow .perm-icon { font-size: 20px; flex-shrink: 0; }
+    .perm-flow .perm-label { font-weight: 600; min-width: 120px; }
+    .perm-flow .perm-desc { color: #656d76; }
+
+    /* Footer */
+    .footer { background: #0d1117; color: #8b949e; padding: 40px 0; }
+    .footer a { color: var(--brand-copilot-subtle); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* Responsive grid helpers */
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    @media (max-width: 768px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 32px; }
+    }
+
+    /* Nav */
+    .top-nav {
+      background: #0d1117;
+      border-bottom: 1px solid #30363d;
+      padding: 12px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .top-nav a { color: #f0f6fc; text-decoration: none; font-size: 13px; font-weight: 500; padding: 6px 10px; border-radius: 6px; }
+    .top-nav a:hover { background: #21262d; }
+    .top-nav a.nav-cli { border-bottom: 2px solid var(--cli-accent); }
+    .top-nav a.nav-ide { border-bottom: 2px solid var(--ide-accent); }
+    .top-nav a.nav-web { border-bottom: 2px solid var(--web-accent); }
+    .nav-inner { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .nav-logo { font-weight: 700; font-size: 16px; margin-right: 16px; display: flex; align-items: center; gap: 8px; }
+    .nav-logo svg { fill: #f0f6fc; }
+    .nav-sep { color: #30363d; margin: 0 4px; }
+
+    /* Floating agenda progress */
+    .progress-bar {
+      display: flex;
+      gap: 0;
+      border-radius: 6px;
+      overflow: hidden;
+      height: 6px;
+      margin-top: 12px;
+    }
+    .progress-bar .seg { height: 100%; }
+    .seg-cli { background: var(--cli-accent); flex: 3; }
+    .seg-ide { background: var(--ide-accent); flex: 1.5; }
+    .seg-web { background: var(--web-accent); flex: 1.5; }
+
+    /* Model table */
+    .model-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+    .model-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-sonnet { background: #f59e0b; }
+    .dot-opus { background: #ef4444; }
+    .dot-haiku { background: #fbbf24; }
+    .dot-gpt { background: #10b981; }
+    .dot-gemini { background: #3b82f6; }
+
+    /* Slash command table */
+    .cmd-table { width: 100%; font-size: 13px; }
+    .cmd-table td { padding: 8px 12px; border-bottom: 1px solid #d0d7de; }
+    .cmd-table td:first-child { font-family: 'SFMono-Regular', Consolas, monospace; font-weight: 600; color: var(--brand-copilot); white-space: nowrap; }
+
+    /* Agent type cards */
+    .agent-type-card {
+      border-radius: 12px;
+      padding: 20px;
+      height: 100%;
+      border: 1px solid #d0d7de;
+      background: #fff;
+    }
+    .agent-type-card h4 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .agent-type-card .where { font-size: 12px; color: #656d76; margin-bottom: 8px; }
+    .agent-type-card p { font-size: 13px; color: #656d76; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="top-nav">
+  <div class="container-xl px-3">
+    <div class="nav-inner">
+      <span class="nav-logo">
+        <svg height="24" viewBox="0 0 16 16" width="24"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 01-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 010 8c0-4.42 3.58-8 8-8z"></path></svg>
+        Copilot Deep Dive
+      </span>
+      <span class="nav-sep">|</span>
+      <a href="#agenda" style="color:#8b949e;">Agenda</a>
+      <span class="nav-sep">|</span>
+      <a href="#cli-modes" class="nav-cli">Exec Modes</a>
+      <a href="#cli-environment" class="nav-cli">Environment</a>
+      <a href="#cli-models" class="nav-cli">Models</a>
+      <a href="#cli-fleet" class="nav-cli">Fleet</a>
+      <a href="#cli-permissions" class="nav-cli">Permissions</a>
+      <span class="nav-sep">|</span>
+      <a href="#ide-agent" class="nav-ide">Agent Mode</a>
+      <a href="#ide-claude" class="nav-ide">Claude Harness</a>
+      <a href="#ide-features" class="nav-ide">IDE Features</a>
+      <span class="nav-sep">|</span>
+      <a href="#web-governance" class="nav-web">Governance</a>
+      <a href="#web-review" class="nav-web">Code Review</a>
+      <a href="#web-agentic" class="nav-web">Agentic</a>
+      <span class="nav-sep">|</span>
+      <a href="#extras">Extras</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container-xl px-3">
+    <p style="font-size:14px; text-transform:uppercase; letter-spacing:2px; color:#8b949e; margin-bottom:12px; font-weight:600;">Technical Deep Dive &mdash; April 2026</p>
+    <h1>GitHub Copilot: <span class="cli-highlight">CLI</span>, <span class="highlight">IDE</span>, and <span style="color:#f78166;">GitHub.com</span></h1>
+    <p class="subtitle">A 1-hour technical walkthrough for engineers familiar with Claude Code &mdash; covering agentic workflows in the terminal, VS Code agent mode with Claude as a third-party harness, and AI-powered features across GitHub.com.</p>
+    <div class="badge-row">
+      <span class="Label Label--info">Copilot CLI</span>
+      <span class="Label Label--accent">Agent Mode</span>
+      <span class="Label Label--attention">Claude Agent Harness</span>
+      <span class="Label Label--success">Code Review Agent</span>
+      <span class="Label Label--done">Coding Agent</span>
+      <span class="Label Label--sponsors">Enterprise Governance</span>
+    </div>
+    <div class="progress-bar">
+      <div class="seg seg-cli"></div>
+      <div class="seg seg-ide"></div>
+      <div class="seg seg-web"></div>
+    </div>
+    <div style="display:flex; gap:24px; margin-top:8px; font-size:12px; color:#8b949e;">
+      <span><span style="color:var(--cli-accent);">&#9632;</span> CLI &mdash; 30 min</span>
+      <span><span style="color:var(--ide-accent);">&#9632;</span> IDE &mdash; 15 min</span>
+      <span><span style="color:var(--web-accent);">&#9632;</span> GitHub.com &mdash; 15 min</span>
+    </div>
+  </div>
+</section>
+
+<!-- Agenda Overview -->
+<section id="agenda" class="section">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Session Agenda &mdash; 60 Minutes</h2>
+    <p class="section-lead">Structured walkthrough for engineering teams already familiar with Claude Code. We show how Copilot delivers the same agentic power &mdash; plus enterprise governance they don&rsquo;t have to build.</p>
+
+    <div class="grid-3">
+      <!-- CLI Column -->
+      <div class="agenda-bar">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span class="section-number cli">1</span>
+          <h3 style="color:#f0f6fc;margin:0;">Copilot CLI</h3>
+          <span style="font-size:12px;color:var(--cli-accent);margin-left:auto;">~30 min</span>
+        </div>
+        <div class="agenda-item active"><span class="agenda-dot cli"></span> Execution modes: Plan vs. Autopilot</div>
+        <div class="agenda-item active"><span class="agenda-dot cli"></span> Agent environment &amp; tools</div>
+        <div class="agenda-item active"><span class="agenda-dot cli"></span> Models &amp; sub-agents</div>
+        <div class="agenda-item active"><span class="agenda-dot cli"></span> Fleet &amp; sessions</div>
+        <div class="agenda-item active"><span class="agenda-dot cli"></span> Permissions &amp; boundaries</div>
+      </div>
+
+      <!-- IDE Column -->
+      <div class="agenda-bar">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span class="section-number ide">2</span>
+          <h3 style="color:#f0f6fc;margin:0;">Copilot in the IDE</h3>
+          <span style="font-size:12px;color:var(--ide-accent);margin-left:auto;">~15 min</span>
+        </div>
+        <div class="agenda-item active"><span class="agenda-dot ide"></span> Agent mode in VS Code</div>
+        <div class="agenda-item active"><span class="agenda-dot ide"></span> Claude as third-party agent harness</div>
+        <div class="agenda-item active"><span class="agenda-dot ide"></span> Core IDE features</div>
+      </div>
+
+      <!-- Web Column -->
+      <div class="agenda-bar">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span class="section-number web">3</span>
+          <h3 style="color:#f0f6fc;margin:0;">GitHub.com AI</h3>
+          <span style="font-size:12px;color:var(--web-accent);margin-left:auto;">~15 min</span>
+        </div>
+        <div class="agenda-item active"><span class="agenda-dot web"></span> Model enablement &amp; governance</div>
+        <div class="agenda-item active"><span class="agenda-dot web"></span> Code review agent</div>
+        <div class="agenda-item active"><span class="agenda-dot web"></span> Agentic workflows &amp; coding agent</div>
+      </div>
+    </div>
+
+    <div class="callout demo-callout" style="margin-top:24px;">
+      <p><strong>Presenter tip:</strong> Your engineers know Claude Code well. Lead with what&rsquo;s familiar (terminal-first, agentic coding) then show what&rsquo;s <em>different</em> &mdash; multi-model choice, enterprise governance, issue-to-PR automation, and Claude running as a native agent harness inside VS Code.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PART 1: COPILOT CLI (Primary Focus)                          -->
+<!-- ============================================================ -->
+<div class="section-divider" id="cli-start">
+  <div class="container-xl px-3">
+    <span class="section-number cli">1</span>
+    <h2>GitHub Copilot CLI</h2>
+    <p>Full agentic AI in the terminal &mdash; the direct comparison point to Claude Code</p>
+  </div>
+</div>
+
+<!-- 1.1 Execution Modes -->
+<section id="cli-modes" class="section">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Execution Modes: Plan vs. Autopilot</h2>
+    <p class="section-lead">Three interactive modes plus a programmatic interface. Cycle between modes with <code>Shift+Tab</code> during a session.</p>
+
+    <div class="grid-3" style="margin-bottom:24px;">
+      <div class="mode-card">
+        <h3>Ask / Execute</h3>
+        <span class="Label Label--success Label--inline mb-2">Default</span>
+        <p class="mode-desc">The default mode. Copilot responds to prompts directly, asks for tool approval step-by-step, and executes commands one at a time. Best for exploratory work and learning the codebase.</p>
+        <div class="code-block" style="font-size:12px;">
+          <span class="prompt">$</span> <span class="command">copilot</span><br>
+          <span class="comment"># Start interactive session</span><br>
+          <span class="comment"># Copilot asks before each action</span>
+        </div>
+        <div class="tag-row">
+          <span class="tag tag-cli">Step-by-step</span>
+          <span class="tag tag-cli">Approval required</span>
+        </div>
+      </div>
+
+      <div class="mode-card recommended">
+        <h3>Plan Mode</h3>
+        <span class="Label Label--accent Label--inline mb-2">Structured</span>
+        <p class="mode-desc">Copilot analyzes the request, asks clarifying questions, and builds a <strong>structured implementation plan</strong> before writing any code. Catches misunderstandings early. Keeps you in control of complex, multi-step tasks.</p>
+        <div class="code-block" style="font-size:12px;">
+          <span class="comment"># Press Shift+Tab to enter Plan mode</span><br>
+          <span class="comment"># Or select /plan in the session</span><br>
+          <span class="comment"># Copilot outputs a plan, then executes</span>
+        </div>
+        <div class="tag-row">
+          <span class="tag tag-cli">Plan first</span>
+          <span class="tag tag-cli">Clarifying Qs</span>
+          <span class="tag tag-cli">Best for complex tasks</span>
+        </div>
+      </div>
+
+      <div class="mode-card">
+        <h3>Autopilot Mode</h3>
+        <span class="Label Label--attention Label--inline mb-2">Experimental</span>
+        <p class="mode-desc">Encourages the agent to <strong>continue working until the task is completed</strong> without pausing for intermediate user input. Requires <code>--experimental</code> flag. Closest to Claude Code&rsquo;s autonomous loop.</p>
+        <div class="code-block" style="font-size:12px;">
+          <span class="prompt">$</span> <span class="command">copilot</span> <span class="flag">--experimental</span><br>
+          <span class="comment"># Then toggle to Autopilot with Shift+Tab</span><br>
+          <span class="comment"># Agent works until task is done</span>
+        </div>
+        <div class="tag-row">
+          <span class="tag tag-cli">Autonomous</span>
+          <span class="tag tag-new">Experimental</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Programmatic interface -->
+    <h3 class="h4 mb-3">Programmatic &amp; Headless Interface</h3>
+    <div class="grid-2">
+      <div>
+        <p style="font-size:14px;color:#656d76;margin-bottom:12px;">Pass a single prompt on the command line for scripting and CI integration:</p>
+        <div class="code-block">
+          <span class="comment"># Single prompt &mdash; executes and exits</span><br>
+          <span class="prompt">$</span> <span class="command">copilot</span> <span class="flag">-p</span> <span class="string">"Show me this week's commits and summarize"</span> \<br>
+          &nbsp;&nbsp;<span class="flag">--allow-tool</span>=<span class="string">'shell(git)'</span>
+        </div>
+        <div class="code-block">
+          <span class="comment"># Fully headless &mdash; no user prompts</span><br>
+          <span class="prompt">$</span> <span class="command">copilot</span> <span class="flag">--allow-all-tools</span> <span class="flag">-p</span> <span class="string">"Kill the process on port 3000"</span>
+        </div>
+      </div>
+      <div>
+        <p style="font-size:14px;color:#656d76;margin-bottom:12px;">Piped input from scripts or other commands:</p>
+        <div class="code-block">
+          <span class="comment"># Pipe output into Copilot</span><br>
+          <span class="prompt">$</span> ./generate-options.sh | <span class="command">copilot</span>
+        </div>
+        <div class="code-block">
+          <span class="comment"># Combine with fleet for parallel work</span><br>
+          <span class="prompt">$</span> <span class="command">copilot</span> <span class="flag">-p</span> <span class="string">"/fleet Refactor auth, tests, and docs"</span> \<br>
+          &nbsp;&nbsp;<span class="flag">--no-ask-user</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout cli-callout" style="margin-top:24px;">
+      <p><strong>For Claude Code users:</strong> Autopilot mode is the closest equivalent to Claude Code&rsquo;s default autonomous behavior. Plan mode is unique to Copilot CLI &mdash; it helps teams enforce &ldquo;think before you code&rdquo; discipline that your governance model requires.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 1.2 Agent Environment -->
+<section id="cli-environment" class="section section-alt">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Agent Environment: Context, Tools, and Files</h2>
+    <p class="section-lead">What the Copilot CLI agent can see, access, and interact with inside your workspace.</p>
+
+    <div class="grid-3" style="margin-bottom:24px;">
+      <div class="feature-card">
+        <div class="card-icon">📁</div>
+        <h3>Workspace Context</h3>
+        <p>Operates in the <strong>current working directory</strong>. Reads files, project structure, dependencies, and documentation. Trusted directory scoping on first launch. Add more directories with <code>/add-dir</code>.</p>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon">🛠️</div>
+        <h3>Built-in Tools</h3>
+        <p><strong>Shell commands</strong> (git, npm, pip, curl, etc.), <strong>file read/write</strong>, <strong>GitHub MCP server</strong> (issues, PRs, Actions), <strong>LSP servers</strong> for go-to-definition and diagnostics, and <strong>image analysis</strong>.</p>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon">🔌</div>
+        <h3>Custom MCP Servers</h3>
+        <p>Connect to internal APIs, databases, and DevOps systems via MCP. Manage with <code>/mcp</code> slash command. Same protocol as Claude Code &mdash; <strong>build once, use everywhere.</strong></p>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="feature-card">
+        <div class="card-icon">🧠</div>
+        <h3>Auto-Compaction &amp; Infinite Sessions</h3>
+        <p>At 95% of the token limit, Copilot automatically compresses conversation history in the background without interrupting your work. Enables <strong>virtually infinite sessions</strong>. Manual compaction available with <code>/compact</code>. View token usage with <code>/context</code>.</p>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon">🧰</div>
+        <h3>LSP Integration</h3>
+        <p>Configure Language Server Protocol servers for enhanced code intelligence &mdash; go-to-definition, hover docs, diagnostics. Set up via <code>~/.copilot/lsp-config.json</code> (user) or <code>.github/lsp.json</code> (repo). Gives the agent <strong>IDE-grade understanding</strong> in the terminal.</p>
+      </div>
+    </div>
+
+    <div class="callout cli-callout" style="margin-top:24px;">
+      <p><strong>Key differentiator vs. Claude Code:</strong> The built-in GitHub MCP server gives Copilot CLI native access to your GitHub data &mdash; issues, PRs, Actions, code search. Claude Code requires manual MCP server setup for equivalent functionality.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 1.3 Models & Sub-Agents -->
+<section id="cli-models" class="section">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Models &amp; Sub-Agents</h2>
+    <p class="section-lead">Pick the right model for the task. Compose custom agents per repo. Bring your own model provider if needed.</p>
+
+    <div class="grid-2" style="margin-bottom:24px;">
+      <!-- Model picker -->
+      <div>
+        <h3 class="h4 mb-3">Available Models (<code>/model</code>)</h3>
+        <div style="overflow-x:auto;">
+          <table class="comparison-table" style="font-size:13px;">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Provider</th>
+                <th style="text-align:center;">Multiplier</th>
+                <th>Best For</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Claude Sonnet 4.5</strong></td>
+                <td>Anthropic</td>
+                <td style="text-align:center;">1x</td>
+                <td>Default &mdash; everyday coding</td>
+              </tr>
+              <tr>
+                <td><strong>Claude Opus 4.6</strong></td>
+                <td>Anthropic</td>
+                <td style="text-align:center;">3x</td>
+                <td>Deep reasoning, complex refactors</td>
+              </tr>
+              <tr>
+                <td>Claude Haiku 4.5</td>
+                <td>Anthropic</td>
+                <td style="text-align:center;">0.33x</td>
+                <td>Fast, lightweight tasks</td>
+              </tr>
+              <tr>
+                <td><strong>GPT-5.4</strong></td>
+                <td>OpenAI</td>
+                <td style="text-align:center;">1x</td>
+                <td>Long sessions, orchestration</td>
+              </tr>
+              <tr>
+                <td>GPT-5.1 Codex</td>
+                <td>OpenAI</td>
+                <td style="text-align:center;">1x</td>
+                <td>Code generation</td>
+              </tr>
+              <tr>
+                <td>GPT-5 mini</td>
+                <td>OpenAI</td>
+                <td style="text-align:center;">0x</td>
+                <td>Quick tasks (free tier)</td>
+              </tr>
+              <tr>
+                <td><strong>Gemini 3 Pro</strong></td>
+                <td>Google</td>
+                <td style="text-align:center;">1x</td>
+                <td>Multi-modal, cross-language</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:12px;color:#656d76;margin-top:8px;">Multiplier 0x = does not consume premium requests. Selection persists across sessions.</p>
+      </div>
+
+      <!-- Custom Agents & BYOM -->
+      <div>
+        <h3 class="h4 mb-3">Custom Agents (<code>.github/agents/</code>)</h3>
+        <p style="font-size:14px;color:#656d76;margin-bottom:12px;">Define specialized agents per repo with markdown files. Each agent specifies its model, tools, and instructions. Invoke with <code>/agent</code> or <code>@agent-name.md</code>.</p>
+        <div class="code-block" style="font-size:12px;">
+          <span class="comment"># .github/agents/security-reviewer.md</span><br>
+          <span class="keyword">---</span><br>
+          <span class="flag">name</span>: security-reviewer<br>
+          <span class="flag">description</span>: Security-focused code review<br>
+          <span class="flag">model</span>: claude-opus-4.6<br>
+          <span class="flag">tools</span>: [<span class="string">"bash"</span>, <span class="string">"view"</span>, <span class="string">"edit"</span>]<br>
+          <span class="keyword">---</span><br>
+          You are an expert security engineer.<br>
+          Review code for OWASP Top 10 violations.<br>
+          Follow company security standards in /docs/security.md.
+        </div>
+
+        <h3 class="h4 mb-3" style="margin-top:16px;">Bring Your Own Model (BYOM)</h3>
+        <div class="code-block" style="font-size:12px;">
+          <span class="comment"># Point to any OpenAI-compatible endpoint</span><br>
+          <span class="prompt">$</span> <span class="keyword">export</span> COPILOT_PROVIDER_BASE_URL=<span class="string">"..."</span><br>
+          <span class="prompt">$</span> <span class="keyword">export</span> COPILOT_PROVIDER_TYPE=<span class="string">"openai"</span><br>
+          <span class="prompt">$</span> <span class="keyword">export</span> COPILOT_MODEL=<span class="string">"my-model"</span><br>
+          <span class="comment"># Also supports: azure, anthropic, ollama</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout cli-callout">
+      <p><strong>For Claude Code users:</strong> Claude Code is locked to Anthropic models. Copilot CLI defaults to Claude Sonnet 4.5 but lets you switch to GPT-5.4, Gemini 3 Pro, or even a local Ollama model &mdash; per task, per session. Custom agents let teams codify their coding standards directly in the repo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 1.4 Fleet & Sessions -->
+<section id="cli-fleet" class="section section-alt">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Fleet &amp; Sessions: Parallel Execution at Scale</h2>
+    <p class="section-lead"><code>/fleet</code> decomposes tasks into parallel sub-agents. <code>/delegate</code> dispatches work to the cloud coding agent for a PR. Sessions are persistent with metrics.</p>
+
+    <div class="grid-2" style="margin-bottom:24px;">
+      <!-- Fleet -->
+      <div class="feature-card" style="border-color:var(--cli-accent);">
+        <div class="card-icon">🚀</div>
+        <h3>/fleet &mdash; Parallel Multi-Agent Execution</h3>
+        <p style="margin-bottom:12px;">Dispatch multiple sub-agents in parallel. An orchestrator decomposes tasks, identifies parallelism, manages execution waves, and synthesizes results.</p>
+        <div class="code-block" style="font-size:12px;">
+          <span class="comment"># Break a big task into parallel tracks</span><br>
+          <span class="prompt">&gt;</span> <span class="command">/fleet</span> <span class="string">Refactor the auth module, update all tests, and rewrite docs/auth/</span>
+        </div>
+        <h4 style="font-size:14px;margin:12px 0 8px;">How it works:</h4>
+        <ol style="font-size:13px;color:#656d76;line-height:1.8;padding-left:20px;">
+          <li><strong>Decomposes</strong> your task into discrete work items with dependencies</li>
+          <li><strong>Identifies</strong> which items can run in parallel vs. must serialize</li>
+          <li><strong>Dispatches</strong> independent items as background sub-agents</li>
+          <li><strong>Polls</strong> for completion, dispatches next wave</li>
+          <li><strong>Verifies</strong> outputs and synthesizes final artifacts</li>
+        </ol>
+        <div class="tag-row" style="margin-top:12px;">
+          <span class="tag tag-new">New &mdash; April 2026</span>
+          <span class="tag tag-cli">Parallel agents</span>
+        </div>
+      </div>
+
+      <!-- Delegate + Sessions -->
+      <div>
+        <div class="feature-card" style="margin-bottom:16px;">
+          <div class="card-icon">📤</div>
+          <h3>/delegate &mdash; Background Coding Agent</h3>
+          <p>Dispatch the Copilot coding agent to work <strong>in the background</strong> and open a PR. Works asynchronously &mdash; you keep working while Copilot creates the branch, codes, tests, and opens the PR.</p>
+          <div class="code-block" style="font-size:12px;">
+            <span class="prompt">&gt;</span> <span class="command">/delegate</span> <span class="string">Fix issue #42 and use playwright to verify</span>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="card-icon">📊</div>
+          <h3>Session Management</h3>
+          <p>Every session has an ID, metrics, and can be exported. Track premium requests, duration, and code changes.</p>
+          <table class="cmd-table" style="margin-top:12px;">
+            <tr><td>/session</td><td>View session metrics (requests, duration, lines changed)</td></tr>
+            <tr><td>/share</td><td>Export session as markdown or GitHub Gist</td></tr>
+            <tr><td>/tasks</td><td>View running background tasks from /fleet or /delegate</td></tr>
+            <tr><td>/clear</td><td>Reset session for a new task</td></tr>
+            <tr><td>/compact</td><td>Manual context compression</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong>Fleet best practices:</strong> Assign each sub-agent <strong>distinct files</strong> &mdash; there&rsquo;s no file locking, so the last writer wins. Declare dependencies explicitly. Use <code>/tasks</code> to monitor progress. Reference custom agents for specialized tracks: <code>/fleet Use @docs-writer.md for docs and default for code</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 1.5 Permissions & Boundaries -->
+<section id="cli-permissions" class="section">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Permissions &amp; Boundaries</h2>
+    <p class="section-lead">Fine-grained control over what the agent can and cannot do. Enterprises can enforce strict boundaries per team.</p>
+
+    <h3 class="h4 mb-3">Tool Approval Flow</h3>
+    <p style="font-size:14px;color:#656d76;margin-bottom:16px;">When Copilot needs a tool that could modify or execute, it presents three options:</p>
+    <div class="perm-flow">
+      <span class="perm-icon">1️⃣</span>
+      <span class="perm-label">Yes (once)</span>
+      <span class="perm-desc">Allow this specific command, this time only</span>
+    </div>
+    <div class="perm-flow">
+      <span class="perm-icon">2️⃣</span>
+      <span class="perm-label">Yes (session)</span>
+      <span class="perm-desc">Approve this tool type for the entire session</span>
+    </div>
+    <div class="perm-flow">
+      <span class="perm-icon">3️⃣</span>
+      <span class="perm-label">No + feedback</span>
+      <span class="perm-desc">Reject and tell Copilot what to do instead (inline steering)</span>
+    </div>
+
+    <h3 class="h4 mb-3" style="margin-top:24px;">Command-Line Granular Controls</h3>
+    <div class="grid-2" style="margin-bottom:24px;">
+      <div>
+        <div class="code-block" style="font-size:12px;">
+          <span class="comment"># Allow everything except destructive commands</span><br>
+          <span class="prompt">$</span> <span class="command">copilot</span> <span class="flag">--allow-all-tools</span> \<br>
+          &nbsp;&nbsp;<span class="flag">--deny-tool</span>=<span class="string">'shell(rm)'</span> \<br>
+          &nbsp;&nbsp;<span class="flag">--deny-tool</span>=<span class="string">'shell(git push)'</span>
+        </div>
+        <div class="code-block" style="font-size:12px;">
+          <span class="comment"># Only allow git reads and file writes</span><br>
+          <span class="prompt">$</span> <span class="command">copilot</span> <span class="flag">--allow-tool</span>=<span class="string">'shell(git log)'</span> \<br>
+          &nbsp;&nbsp;<span class="flag">--allow-tool</span>=<span class="string">'shell(git diff)'</span> \<br>
+          &nbsp;&nbsp;<span class="flag">--allow-tool</span>=<span class="string">'write'</span>
+        </div>
+      </div>
+      <div>
+        <div style="overflow-x:auto;">
+          <table class="comparison-table" style="font-size:13px;">
+            <thead>
+              <tr><th>Spec Syntax</th><th>What It Controls</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>shell(COMMAND)</code></td><td>A specific shell command (e.g., <code>rm</code>, <code>curl</code>)</td></tr>
+              <tr><td><code>shell(git SUBCOMMAND)</code></td><td>A specific git subcommand (e.g., <code>git push</code>)</td></tr>
+              <tr><td><code>shell</code></td><td>All shell commands</td></tr>
+              <tr><td><code>write</code></td><td>File modifications (non-shell)</td></tr>
+              <tr><td><code>MCP_SERVER(tool)</code></td><td>Specific MCP server tool</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:12px;color:#656d76;margin-top:8px;"><code>--deny-tool</code> always takes precedence over <code>--allow-tool</code>.</p>
+      </div>
+    </div>
+
+    <h3 class="h4 mb-3">Trusted Directory Scoping</h3>
+    <div class="grid-3" style="margin-bottom:24px;">
+      <div class="feature-card" style="text-align:center;padding:20px;">
+        <div style="font-size:28px;">📂</div>
+        <p style="font-weight:600;margin:8px 0 4px;color:#24292f;">Directory Trust</p>
+        <p style="font-size:12px;">On first launch, user confirms trust for cwd and all subdirectories</p>
+      </div>
+      <div class="feature-card" style="text-align:center;padding:20px;">
+        <div style="font-size:28px;">🔒</div>
+        <p style="font-weight:600;margin:8px 0 4px;color:#24292f;">Boundary Enforcement</p>
+        <p style="font-size:12px;">Agent operates only within trusted directories. Never launch from <code>~</code></p>
+      </div>
+      <div class="feature-card" style="text-align:center;padding:20px;">
+        <div style="font-size:28px;">🏗️</div>
+        <p style="font-weight:600;margin:8px 0 4px;color:#24292f;">Isolated Environments</p>
+        <p style="font-size:12px;">For <code>--allow-all-tools</code>, use VMs or containers with restricted network</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong>Governance note:</strong> Claude Code has a similar approval model but Copilot CLI&rsquo;s <code>--deny-tool</code> system lets your platform team <strong>pre-configure safe boundaries</strong> via wrapper scripts or shell aliases. Teams can ship a <code>copilot-safe</code> alias that blocks destructive commands by default.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Key CLI Commands Reference -->
+<section class="section section-alt">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Quick Reference: CLI Slash Commands</h2>
+    <p class="section-lead">The complete command palette available during any Copilot CLI session.</p>
+
+    <div class="grid-3">
+      <div>
+        <h3 class="h4 mb-2">Session &amp; Context</h3>
+        <table class="cmd-table">
+          <tr><td>/clear</td><td>Reset session for new task</td></tr>
+          <tr><td>/compact</td><td>Compress context manually</td></tr>
+          <tr><td>/context</td><td>Show token usage breakdown</td></tr>
+          <tr><td>/session</td><td>Session metrics &amp; usage</td></tr>
+          <tr><td>/share</td><td>Export as markdown or Gist</td></tr>
+          <tr><td>/exit</td><td>End the session</td></tr>
+        </table>
+      </div>
+      <div>
+        <h3 class="h4 mb-2">Agents &amp; Models</h3>
+        <table class="cmd-table">
+          <tr><td>/model</td><td>Select or change AI model</td></tr>
+          <tr><td>/agent</td><td>Select a custom agent</td></tr>
+          <tr><td>/fleet</td><td>Parallel multi-agent execution</td></tr>
+          <tr><td>/delegate</td><td>Dispatch coding agent &rarr; PR</td></tr>
+          <tr><td>/tasks</td><td>View background tasks</td></tr>
+          <tr><td>/mcp</td><td>Manage MCP servers</td></tr>
+        </table>
+      </div>
+      <div>
+        <h3 class="h4 mb-2">Files &amp; Permissions</h3>
+        <table class="cmd-table">
+          <tr><td>/cwd</td><td>Show or change working directory</td></tr>
+          <tr><td>/add-dir</td><td>Allow access to another directory</td></tr>
+          <tr><td>/list-dirs</td><td>Show allowed directories</td></tr>
+          <tr><td>/list-files</td><td>List accessible files</td></tr>
+          <tr><td>/allow-all</td><td>Allow all tools for session</td></tr>
+          <tr><td>/experimental</td><td>Toggle experimental features</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PART 2: COPILOT IN THE IDE                                    -->
+<!-- ============================================================ -->
+<div class="section-divider" id="ide-start">
+  <div class="container-xl px-3">
+    <span class="section-number ide">2</span>
+    <h2>GitHub Copilot in the IDE</h2>
+    <p>Agent mode, Claude as a native agent harness, and the features developers use daily</p>
+  </div>
+</div>
+
+<!-- 2.1 Agent Mode -->
+<section id="ide-agent" class="section">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Agent Mode in VS Code</h2>
+    <p class="section-lead">The primary interaction model. An autonomous AI assistant that plans, edits multi-file, runs commands, and self-corrects &mdash; all inside your IDE.</p>
+
+    <h3 class="h4 mb-3">The Agent Loop</h3>
+    <div class="grid-2" style="margin-bottom:24px;">
+      <div>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>1. Describe your goal</h4>
+          <p>Natural language description of what you want to build or fix</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>2. Agent plans the approach</h4>
+          <p>Infers required subtasks, identifies files to change, and maps dependencies</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>3. Multi-file editing</h4>
+          <p>Edits files across the workspace &mdash; creates, modifies, deletes</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>4. Terminal commands</h4>
+          <p>Installs dependencies, runs builds, executes tests</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>5. Self-correction</h4>
+          <p>Catches errors, fixes them, iterates until all subtasks pass</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <h4>6. Review &amp; approve</h4>
+          <p>Inline diffs with keep/undo per change, automatic checkpoints for rollback</p>
+        </div>
+      </div>
+      <div>
+        <h3 class="h4 mb-3">Four Agent Runtime Environments</h3>
+        <div class="grid-2">
+          <div class="agent-type-card">
+            <h4>Local</h4>
+            <div class="where">Runs on your machine</div>
+            <p>Interactive in VS Code. Full workspace access, tools, models. Approve changes in real-time.</p>
+          </div>
+          <div class="agent-type-card">
+            <h4>Copilot CLI</h4>
+            <div class="where">Runs locally, background</div>
+            <p>Background execution on your machine. Optional Git worktree isolation. Reports back when done.</p>
+          </div>
+          <div class="agent-type-card">
+            <h4>Cloud</h4>
+            <div class="where">GitHub infrastructure</div>
+            <p>Remote sandbox via GitHub Actions. Creates branches and PRs. Team collaboration.</p>
+          </div>
+          <div class="agent-type-card" style="border-color:var(--brand-copilot);">
+            <h4>Third-Party</h4>
+            <div class="where">Anthropic / OpenAI SDK</div>
+            <p>Uses provider&rsquo;s agent harness (Claude Agent SDK, OpenAI Codex). Local or cloud.</p>
+          </div>
+        </div>
+
+        <h3 class="h4 mb-3" style="margin-top:16px;">Permission Levels</h3>
+        <div class="perm-flow">
+          <span class="perm-icon">🛡️</span>
+          <span class="perm-label">Default</span>
+          <span class="perm-desc">Read-only tools auto-approved; write actions need confirmation</span>
+        </div>
+        <div class="perm-flow">
+          <span class="perm-icon">⚡</span>
+          <span class="perm-label">Bypass</span>
+          <span class="perm-desc">Auto-approve all tool calls; agent may still ask clarifying questions</span>
+        </div>
+        <div class="perm-flow">
+          <span class="perm-icon">🤖</span>
+          <span class="perm-label">Autopilot</span>
+          <span class="perm-desc">Full autonomy &mdash; auto-approves, auto-responds, works until done</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong>Session handoff:</strong> Users can seamlessly hand off a session from one agent type to another (e.g., Local &rarr; CLI &rarr; Cloud). VS Code carries over the full conversation history and context.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2.2 Claude as Third-Party Agent Harness -->
+<section id="ide-claude" class="section section-alt">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Claude as a Third-Party Agent Harness</h2>
+    <p class="section-lead">Two ways to use Claude in Copilot. This is the key story for engineers who love Claude Code.</p>
+
+    <div class="grid-2" style="margin-bottom:32px;">
+      <!-- Claude Models -->
+      <div class="feature-card">
+        <div class="card-icon">🟠</div>
+        <h3>Option A: Claude Models in Copilot</h3>
+        <span class="Label Label--success Label--inline mb-2">GA</span>
+        <p style="margin-bottom:12px;">Select any Claude model from the <strong>model picker</strong> (Opus 4.6, Sonnet 4.5/4.6, Haiku 4.5). The model powers Copilot&rsquo;s <strong>built-in agent loop</strong> with Copilot&rsquo;s native tools.</p>
+        <ul style="font-size:13px;line-height:2;padding-left:20px;color:#656d76;">
+          <li>Uses Copilot&rsquo;s agent infrastructure</li>
+          <li>Copilot&rsquo;s tools: file editing, terminal, MCP, GitHub MCP</li>
+          <li>Same experience regardless of model</li>
+          <li>Full model roster available (switch anytime)</li>
+          <li>Enterprise governance applies</li>
+        </ul>
+        <div class="callout" style="margin:12px 0 0;">
+          <p style="font-size:13px;"><strong>Think of it as:</strong> Claude&rsquo;s brain in Copilot&rsquo;s body.</p>
+        </div>
+      </div>
+
+      <!-- Claude Agent -->
+      <div class="feature-card" style="border-color:var(--brand-copilot);">
+        <div class="card-icon">🤖</div>
+        <h3>Option B: Claude Agent Harness</h3>
+        <span class="Label Label--accent Label--inline mb-2">Preview</span>
+        <p style="margin-bottom:12px;">Uses <strong>Anthropic&rsquo;s Claude Agent SDK</strong> embedded directly in VS Code. The Claude agent has its <strong>own tools and capabilities</strong> &mdash; separate from Copilot&rsquo;s built-in tooling.</p>
+        <ul style="font-size:13px;line-height:2;padding-left:20px;color:#656d76;">
+          <li>Anthropic&rsquo;s native agentic runtime in VS Code</li>
+          <li>Own slash commands: <code>/agents</code>, <code>/hooks</code>, <code>/memory</code>, <code>/init</code></li>
+          <li>CLAUDE.md memory files for persistent context</li>
+          <li>Own permission modes: Edit automatically, Request approval, Plan</li>
+          <li>Local or Cloud sessions</li>
+          <li><strong>Billed through existing Copilot subscription</strong></li>
+        </ul>
+        <div class="callout" style="margin:12px 0 0;">
+          <p style="font-size:13px;"><strong>Think of it as:</strong> Claude Code embedded inside VS Code, managed by Copilot billing.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="h4 mb-3">Claude Agent Slash Commands</h3>
+    <div style="overflow-x:auto;margin-bottom:24px;">
+      <table class="comparison-table" style="font-size:13px;">
+        <thead>
+          <tr><th>Command</th><th>Description</th><th>Claude Code Equivalent</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>/agents</code></td><td>Create and manage specialized Claude sub-agents</td><td>N/A &mdash; new capability</td></tr>
+          <tr><td><code>/hooks</code></td><td>Configure lifecycle hooks for agent events</td><td>Similar to Claude Code hooks</td></tr>
+          <tr><td><code>/memory</code></td><td>Open and edit CLAUDE.md memory files</td><td>Same as CLAUDE.md</td></tr>
+          <tr><td><code>/init</code></td><td>Initialize a new CLAUDE.md for the project</td><td>Same as <code>/init</code></td></tr>
+          <tr><td><code>/review</code></td><td>Review code changes in a PR</td><td>Manual process</td></tr>
+          <tr><td><code>/security-review</code></td><td>Security audit of pending changes</td><td>Manual process</td></tr>
+          <tr><td><code>/pr-comments</code></td><td>Get comments from a pull request</td><td>Requires GitHub MCP</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="h4 mb-3">Also Available: OpenAI Codex Agent</h3>
+    <div class="feature-card" style="max-width:500px;">
+      <div class="card-icon">🟢</div>
+      <h3>OpenAI Codex</h3>
+      <p>Available as a third-party agent alongside Claude. Cloud and local sessions. Requires Copilot Pro+ for auth. Same unified billing through Copilot subscription.</p>
+    </div>
+
+    <div class="callout" style="margin-top:24px;">
+      <p><strong>Why this matters:</strong> Engineers who love Claude Code&rsquo;s experience get it <em>natively inside VS Code</em> via the Claude agent harness &mdash; with CLAUDE.md, hooks, and the full Anthropic SDK. But they&rsquo;re billed through the existing Copilot license, governed by enterprise policies, and can switch to Copilot&rsquo;s own agent loop with GPT/Gemini when needed. <strong>No separate Anthropic account or extension needed.</strong></p>
+    </div>
+  </div>
+</section>
+
+<!-- 2.3 Core IDE Features -->
+<section id="ide-features" class="section">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Core IDE Features Developers Use Daily</h2>
+    <p class="section-lead">Beyond agentic workflows &mdash; the productivity features that make Copilot indispensable day-to-day.</p>
+
+    <div class="grid-4" style="margin-bottom:24px;">
+      <div class="feature-card" style="text-align:center;padding:20px;">
+        <div style="font-size:28px;">💬</div>
+        <p style="font-weight:600;margin:8px 0 4px;color:#24292f;">Chat Panel</p>
+        <p style="font-size:12px;">Multi-turn conversations. <code>#file</code>, <code>#codebase</code>, <code>@workspace</code> context. Image/screenshot support. Multiple parallel sessions.</p>
+      </div>
+      <div class="feature-card" style="text-align:center;padding:20px;">
+        <div style="font-size:28px;">👻</div>
+        <p style="font-weight:600;margin:8px 0 4px;color:#24292f;">Inline Suggestions</p>
+        <p style="font-size:12px;">Ghost text as you type. Single-line to full functions. <code>Tab</code> to accept, <code>Ctrl+Right</code> for partial. Configurable per language.</p>
+      </div>
+      <div class="feature-card" style="text-align:center;padding:20px;">
+        <div style="font-size:28px;">🔮</div>
+        <p style="font-weight:600;margin:8px 0 4px;color:#24292f;">Next Edit Suggestions</p>
+        <p style="font-size:12px;">Predicts <em>where</em> and <em>what</em> your next edit should be. Catches typos, propagates renames, assists refactoring.</p>
+      </div>
+      <div class="feature-card" style="text-align:center;padding:20px;">
+        <div style="font-size:28px;">✏️</div>
+        <p style="font-weight:600;margin:8px 0 4px;color:#24292f;">Inline Chat</p>
+        <p style="font-size:12px;"><code>Ctrl+I</code> for in-place edits. Targeted refactors and explanations without switching context.</p>
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-bottom:24px;">
+      <div class="feature-card">
+        <div class="card-icon">📸</div>
+        <h3>Vision Support</h3>
+        <p>Attach images, screenshots, or UI mockups as context. The agent can interpret visual designs and implement them. Experimental browser element selection for testing.</p>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon">⏪</div>
+        <h3>Checkpoints &amp; Rollback</h3>
+        <p>Automatic snapshots at key points during agent interactions. Roll back to any previous state. Accept or reject changes individually with inline diffs.</p>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon">📋</div>
+        <h3>Custom Instructions</h3>
+        <p><code>.github/copilot-instructions.md</code> for project-wide conventions. Custom agents, skills, hooks, and prompt templates (<code>.prompt.md</code> files) for team standardization.</p>
+      </div>
+    </div>
+
+    <h3 class="h4 mb-3">MCP in the IDE</h3>
+    <div class="grid-2">
+      <div>
+        <p style="font-size:14px;color:#656d76;margin-bottom:12px;">Configure MCP servers in <code>.vscode/mcp.json</code> (workspace) or user profile. Share with your team via source control.</p>
+        <div class="code-block" style="font-size:12px;">
+          <span class="comment">// .vscode/mcp.json</span><br>
+          {<br>
+          &nbsp;&nbsp;<span class="string">"servers"</span>: {<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"github"</span>: {<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"type"</span>: <span class="string">"http"</span>,<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"url"</span>: <span class="string">"https://api.githubcopilot.com/mcp"</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;},<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"playwright"</span>: {<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"command"</span>: <span class="string">"npx"</span>,<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"args"</span>: [<span class="string">"-y"</span>, <span class="string">"@microsoft/mcp-server-playwright"</span>]<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+          &nbsp;&nbsp;}<br>
+          }
+        </div>
+      </div>
+      <div>
+        <h4 style="font-size:14px;font-weight:600;margin-bottom:8px;">MCP Capabilities</h4>
+        <div class="perm-flow"><span class="perm-icon">🛠️</span><span class="perm-label">Tools</span><span class="perm-desc">Specialized tasks auto-invoked by agents</span></div>
+        <div class="perm-flow"><span class="perm-icon">📖</span><span class="perm-label">Resources</span><span class="perm-desc">Read-only context (files, DB tables, API responses)</span></div>
+        <div class="perm-flow"><span class="perm-icon">💡</span><span class="perm-label">Prompts</span><span class="perm-desc">Preconfigured templates from MCP servers</span></div>
+        <div class="perm-flow"><span class="perm-icon">🖥️</span><span class="perm-label">MCP Apps</span><span class="perm-desc">Interactive UI components rendered in chat</span></div>
+        <p style="font-size:12px;color:#656d76;margin-top:12px;"><strong>Enterprise control:</strong> MCP servers are disabled by default for Business/Enterprise. Admins must explicitly enable via AI Controls. Allowlist and registry URL can be configured.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PART 3: GITHUB.COM AI FEATURES                                -->
+<!-- ============================================================ -->
+<div class="section-divider" id="web-start">
+  <div class="container-xl px-3">
+    <span class="section-number web">3</span>
+    <h2>GitHub.com AI Features</h2>
+    <p>Model governance, code review agent, and agentic workflows at the platform level</p>
+  </div>
+</div>
+
+<!-- 3.1 Model Governance -->
+<section id="web-governance" class="section">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Model Enablement &amp; Governance</h2>
+    <p class="section-lead">Three-tier policy cascade from Enterprise &rarr; Organization &rarr; Repository. Centralized control over models, features, privacy, agents, and MCP.</p>
+
+    <div class="grid-3" style="margin-bottom:24px;">
+      <div class="feature-card" style="border-top:3px solid var(--brand-danger);">
+        <h3>Enterprise Level</h3>
+        <p><strong>Enforces or delegates.</strong> Enterprise owners define policies that cascade to all orgs. Can lock policies (no override at org level) or set &ldquo;No policy&rdquo; to let orgs decide.</p>
+        <ul style="font-size:13px;line-height:1.8;padding-left:16px;color:#656d76;">
+          <li>AI Controls tab (central control plane)</li>
+          <li>Agents, Copilot, MCP sidebar sections</li>
+          <li>Content exclusions</li>
+          <li>Model allow/deny lists</li>
+        </ul>
+      </div>
+      <div class="feature-card" style="border-top:3px solid var(--brand-warning);">
+        <h3>Organization Level</h3>
+        <p><strong>Configures within enterprise boundaries.</strong> Org owners set policies via Copilot settings. Options: Enabled, Disabled, or Unconfigured.</p>
+        <ul style="font-size:13px;line-height:1.8;padding-left:16px;color:#656d76;">
+          <li>Feature policies (Chat, Agent, Code Review)</li>
+          <li>Privacy policies (public code matching)</li>
+          <li>Model availability per org</li>
+          <li>MCP allowlist configuration</li>
+        </ul>
+      </div>
+      <div class="feature-card" style="border-top:3px solid var(--brand-success);">
+        <h3>Repository Level</h3>
+        <p><strong>Inherits and extends.</strong> Repo admins can add content exclusions and configure automatic code review rulesets.</p>
+        <ul style="font-size:13px;line-height:1.8;padding-left:16px;color:#656d76;">
+          <li>Content exclusions (path patterns)</li>
+          <li>Automatic review rulesets</li>
+          <li>Custom instructions</li>
+          <li>AGENTS.md / copilot-instructions.md</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="h4 mb-3">Policy Types</h3>
+    <div style="overflow-x:auto;margin-bottom:24px;">
+      <table class="comparison-table" style="font-size:13px;">
+        <thead>
+          <tr><th>Policy Type</th><th>What It Controls</th><th>Options</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Feature Policies</strong></td>
+            <td>Availability of Chat in IDE, Code Review, Coding Agent, Agent Mode, CLI</td>
+            <td>Enabled / Disabled / Let orgs decide</td>
+          </tr>
+          <tr>
+            <td><strong>Privacy Policies</strong></td>
+            <td>Suggestions matching public code, data handling</td>
+            <td>Allowed / Blocked</td>
+          </tr>
+          <tr>
+            <td><strong>Model Policies</strong></td>
+            <td>Which AI models are available beyond basic tier</td>
+            <td>Per-model enable/disable</td>
+          </tr>
+          <tr>
+            <td><strong>Agent Policies</strong></td>
+            <td>Coding agent, third-party agents (Claude, Codex), custom agents</td>
+            <td>Enabled everywhere / Let orgs decide</td>
+          </tr>
+          <tr>
+            <td><strong>MCP Policies</strong></td>
+            <td>MCP server access (disabled by default for Enterprise)</td>
+            <td>Allow all / Registry allowlist / Disabled</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout web-callout">
+      <p><strong>For governance teams:</strong> This is the policy infrastructure you were planning to build from scratch for Claude Code. With Copilot Enterprise, it&rsquo;s already built. Enterprise admins lock down models, agents, and MCP access from a single AI Controls dashboard. No custom RBAC pipelines needed.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 3.2 Code Review Agent -->
+<section id="web-review" class="section section-alt">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Code Review Agent</h2>
+    <p class="section-lead">AI-powered code review that scans PRs for bugs, security issues, and convention violations. Always a &ldquo;Comment&rdquo; &mdash; never blocks merging.</p>
+
+    <div class="grid-2" style="margin-bottom:24px;">
+      <div>
+        <h3 class="h4 mb-3">How It Works</h3>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>1. Input Processing</h4>
+          <p>Code changes + PR title/body + custom instructions &rarr; prompt</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>2. Multi-Model Analysis</h4>
+          <p>Purpose-built model mix analyzes code for bugs, security, style, performance</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>3. Review Comments</h4>
+          <p>Line-specific suggestions with natural language explanations and code fixes</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <h4>4. Implement Suggestions</h4>
+          <p>Click &ldquo;Implement suggestion&rdquo; to invoke coding agent for automated fixes</p>
+        </div>
+      </div>
+      <div>
+        <h3 class="h4 mb-3">Auto-Assignment Configuration</h3>
+        <div class="feature-card" style="margin-bottom:16px;">
+          <h4 style="font-size:14px;font-weight:600;">Automatic Review Triggers</h4>
+          <ul style="font-size:13px;line-height:2;padding-left:16px;color:#656d76;">
+            <li><strong>On PR creation</strong> &mdash; when PR is opened (not draft)</li>
+            <li><strong>On new pushes</strong> &mdash; re-review on each commit push</li>
+            <li><strong>On draft PRs</strong> &mdash; review while still in draft</li>
+          </ul>
+          <p style="font-size:12px;color:#656d76;margin-top:8px;">Configure via branch rulesets at repo or org level. Manual request also available from Reviewers dropdown.</p>
+        </div>
+
+        <h3 class="h4 mb-3">What It Checks</h3>
+        <div class="grid-2">
+          <div>
+            <ul style="font-size:13px;line-height:2;padding-left:16px;color:#656d76;">
+              <li>Code quality &amp; bugs</li>
+              <li>Security vulnerabilities</li>
+              <li>Performance concerns</li>
+            </ul>
+          </div>
+          <div>
+            <ul style="font-size:13px;line-height:2;padding-left:16px;color:#656d76;">
+              <li>Style/convention violations</li>
+              <li>Error handling gaps</li>
+              <li>Missing documentation</li>
+            </ul>
+          </div>
+        </div>
+
+        <div style="background:#f6f8fa;border-radius:8px;padding:12px 16px;margin-top:12px;font-size:13px;">
+          <strong>Custom coding guidelines:</strong> Add <code>.github/copilot-instructions.md</code> to shape what the reviewer focuses on. Org-level custom instructions are GA as of April 2026.
+        </div>
+      </div>
+    </div>
+
+    <h3 class="h4 mb-3">Key Safety Behaviors</h3>
+    <div class="grid-4" style="margin-bottom:24px;">
+      <div class="feature-card" style="text-align:center;padding:20px;">
+        <div style="font-size:28px;">💬</div>
+        <p style="font-weight:600;margin:8px 0 4px;color:#24292f;">Comment Only</p>
+        <p style="font-size:12px;">Always leaves &ldquo;Comment&rdquo; reviews, never &ldquo;Approve&rdquo; or &ldquo;Request changes&rdquo;</p>
+      </div>
+      <div class="feature-card" style="text-align:center;padding:20px;">
+        <div style="font-size:28px;">🚫</div>
+        <p style="font-weight:600;margin:8px 0 4px;color:#24292f;">Never Blocks</p>
+        <p style="font-size:12px;">Does not count toward required approvals or block merging</p>
+      </div>
+      <div class="feature-card" style="text-align:center;padding:20px;">
+        <div style="font-size:28px;">🎯</div>
+        <p style="font-weight:600;margin:8px 0 4px;color:#24292f;">1 Premium Request</p>
+        <p style="font-size:12px;">Each review consumes exactly one premium request</p>
+      </div>
+      <div class="feature-card" style="text-align:center;padding:20px;">
+        <div style="font-size:28px;">🔧</div>
+        <p style="font-weight:600;margin:8px 0 4px;color:#24292f;">Actionable Fixes</p>
+        <p style="font-size:12px;">Suggestions shown as &ldquo;suggested changes&rdquo; &mdash; apply with a click</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3.3 Agentic Workflows -->
+<section id="web-agentic" class="section">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Agentic Workflows: Issue &rarr; PR &rarr; Review</h2>
+    <p class="section-lead">The Copilot Coding Agent automates the full development cycle. Assign an issue, get a draft PR, iterate with review comments.</p>
+
+    <div class="grid-2" style="margin-bottom:24px;">
+      <div>
+        <h3 class="h4 mb-3">How the Coding Agent Works</h3>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--web-accent);background:var(--web-accent);"></div>
+          <h4>1. Assign a task</h4>
+          <p>Multiple entry points: assign an issue, mention <code>@copilot</code> in a PR, use VS Code, CLI (<code>/delegate</code>), GitHub Mobile, or the Agents panel on any GitHub page.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--web-accent);background:var(--web-accent);"></div>
+          <h4>2. Sandbox spins up</h4>
+          <p>Secure cloud sandbox via GitHub Actions. Clones repo, runs <code>copilot-setup-steps.yml</code>, sets up environment.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--web-accent);background:var(--web-accent);"></div>
+          <h4>3. Analyze &amp; code</h4>
+          <p>Reads codebase, custom instructions, MCP servers. Plans, codes, builds, tests, lints. Self-corrects on failures.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--web-accent);background:var(--web-accent);"></div>
+          <h4>4. Draft PR created</h4>
+          <p>Opens a draft PR, pushes commits, adds you as reviewer. Copilot signs its own commits.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--web-accent);background:var(--web-accent);"></div>
+          <h4>5. Iterate</h4>
+          <p>Leave comments with <code>@copilot</code> to request changes. Copilot pushes follow-up commits.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--brand-success);background:var(--brand-success);"></div>
+          <h4>6. Human approves &amp; merges</h4>
+          <p>Copilot <strong>never self-merges</strong>. Your approval doesn&rsquo;t count if you initiated &mdash; someone else must approve.</p>
+        </div>
+      </div>
+      <div>
+        <h3 class="h4 mb-3">Entry Points for the Coding Agent</h3>
+        <div class="grid-2">
+          <div class="feature-card" style="text-align:center;padding:16px;">
+            <div style="font-size:24px;">📋</div>
+            <p style="font-weight:600;font-size:13px;margin:4px 0;">Assign Issue</p>
+            <p style="font-size:11px;color:#656d76;">github.com</p>
+          </div>
+          <div class="feature-card" style="text-align:center;padding:16px;">
+            <div style="font-size:24px;">💬</div>
+            <p style="font-weight:600;font-size:13px;margin:4px 0;">@copilot in PR</p>
+            <p style="font-size:11px;color:#656d76;">PR comments</p>
+          </div>
+          <div class="feature-card" style="text-align:center;padding:16px;">
+            <div style="font-size:24px;">💻</div>
+            <p style="font-weight:600;font-size:13px;margin:4px 0;">VS Code / CLI</p>
+            <p style="font-size:11px;color:#656d76;">/delegate command</p>
+          </div>
+          <div class="feature-card" style="text-align:center;padding:16px;">
+            <div style="font-size:24px;">📱</div>
+            <p style="font-weight:600;font-size:13px;margin:4px 0;">GitHub Mobile</p>
+            <p style="font-size:11px;color:#656d76;">On the go</p>
+          </div>
+          <div class="feature-card" style="text-align:center;padding:16px;">
+            <div style="font-size:24px;">🔒</div>
+            <p style="font-weight:600;font-size:13px;margin:4px 0;">Security Alerts</p>
+            <p style="font-size:11px;color:#656d76;">Autofix via Copilot</p>
+          </div>
+          <div class="feature-card" style="text-align:center;padding:16px;">
+            <div style="font-size:24px;">🌐</div>
+            <p style="font-weight:600;font-size:13px;margin:4px 0;">Agents Panel</p>
+            <p style="font-size:11px;color:#656d76;">Every GitHub page</p>
+          </div>
+        </div>
+
+        <h3 class="h4 mb-3" style="margin-top:16px;">Safety Guardrails</h3>
+        <div class="perm-flow"><span class="perm-icon">🚫</span><span class="perm-label">Never self-merges</span><span class="perm-desc">Always requires human review and approval</span></div>
+        <div class="perm-flow"><span class="perm-icon">⏸️</span><span class="perm-label">Actions approval</span><span class="perm-desc">Workflows don&rsquo;t auto-run; user must click &ldquo;Approve&rdquo;</span></div>
+        <div class="perm-flow"><span class="perm-icon">✍️</span><span class="perm-label">Signed commits</span><span class="perm-desc">Copilot signs its own commits for audit trail</span></div>
+        <div class="perm-flow"><span class="perm-icon">🏢</span><span class="perm-label">Org controls</span><span class="perm-desc">Runner and firewall settings per organization</span></div>
+      </div>
+    </div>
+
+    <h3 class="h4 mb-3">Security Remediation (Copilot Autofix)</h3>
+    <div class="grid-3" style="margin-bottom:24px;">
+      <div class="feature-card">
+        <div class="card-icon">🔍</div>
+        <h3>Detect</h3>
+        <p>CodeQL scans discover vulnerabilities. Covers 90%+ of alert types in JS/TS, Java, and Python.</p>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon">🔧</div>
+        <h3>Fix</h3>
+        <p>Copilot auto-generates fix suggestions with natural language explanations. Multi-file fixes including dependency changes.</p>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon">📤</div>
+        <h3>Assign to Copilot</h3>
+        <p>Assign security alerts directly to Copilot &mdash; it opens a PR within 30 seconds. Works with bulk security campaigns.</p>
+      </div>
+    </div>
+
+    <div class="callout web-callout">
+      <p><strong>The &ldquo;wow moment&rdquo;:</strong> Claude Code can edit files autonomously, but it can&rsquo;t turn a GitHub issue into a complete PR with tests, iterate on review feedback, or auto-fix security vulnerabilities. The Copilot coding agent + code review agent + Autofix creates a closed-loop development workflow that doesn&rsquo;t exist in the Claude Code ecosystem.</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- EXTRAS: Additional Enterprise Value                            -->
+<!-- ============================================================ -->
+<div class="section-divider" id="extras">
+  <div class="container-xl px-3">
+    <span class="section-number" style="background:var(--brand-success);color:#fff;">+</span>
+    <h2>What Else You Should Know</h2>
+    <p>Enterprise value, pricing, model comparison, and the migration path</p>
+  </div>
+</div>
+
+<!-- Premium Requests & Pricing -->
+<section class="section">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Premium Requests &amp; Cost Model</h2>
+    <p class="section-lead">Understanding how Copilot billing works compared to Claude Code&rsquo;s token-based pricing.</p>
+
+    <div class="grid-2" style="margin-bottom:24px;">
+      <div class="feature-card">
+        <h3>How Premium Requests Work</h3>
+        <p>Each model has a <strong>multiplier</strong> that determines how many premium requests a single interaction consumes:</p>
+        <ul style="font-size:13px;line-height:2;padding-left:16px;color:#656d76;margin-top:8px;">
+          <li><strong>0x (Free tier):</strong> GPT-4.1, GPT-5 mini, Raptor mini &mdash; unlimited</li>
+          <li><strong>0.25x&ndash;0.33x:</strong> Haiku 4.5, Gemini Flash, Grok &mdash; very economical</li>
+          <li><strong>1x (Standard):</strong> Sonnet 4.5, GPT-5.4, Codex &mdash; one request per interaction</li>
+          <li><strong>3x (Premium):</strong> Opus 4.5, Opus 4.6 &mdash; deep reasoning tasks</li>
+          <li><strong>30x:</strong> Opus 4.6 fast mode &mdash; preview, for latency-critical use</li>
+        </ul>
+      </div>
+      <div class="feature-card" style="border-color:var(--brand-copilot);background:#faf5ff;">
+        <h3 style="color:var(--brand-copilot);">Predictable vs. Variable</h3>
+        <div style="display:flex;gap:16px;margin:12px 0;">
+          <div style="flex:1;">
+            <p style="font-size:12px;text-transform:uppercase;font-weight:600;color:#656d76;">Copilot Enterprise</p>
+            <p style="font-size:28px;font-weight:800;color:var(--brand-copilot);">$39</p>
+            <p style="font-size:12px;color:#656d76;">per user/month &mdash; flat</p>
+          </div>
+          <div style="flex:1;">
+            <p style="font-size:12px;text-transform:uppercase;font-weight:600;color:#656d76;">Claude Code</p>
+            <p style="font-size:28px;font-weight:800;color:#656d76;">$20&ndash;$100+</p>
+            <p style="font-size:12px;color:#656d76;">per user/month + token overage</p>
+          </div>
+        </div>
+        <p style="font-size:13px;color:#656d76;">Copilot includes all models, governance, IDE integration, coding agent, and code review. Claude Code pricing scales unpredictably with agentic usage and requires separate infrastructure costs.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Feature Comparison: Copilot CLI vs Claude Code -->
+<section class="section section-alt">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Copilot CLI vs. Claude Code &mdash; Feature Matrix</h2>
+    <p class="section-lead">Comprehensive comparison for engineers evaluating both tools.</p>
+
+    <div style="overflow-x:auto;">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th style="width:35%;">Capability</th>
+            <th style="width:25%;">Claude Code</th>
+            <th style="width:40%;">Copilot CLI</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Autonomous multi-file editing</td>
+            <td><span class="check">&#10003;</span> Yes</td>
+            <td><span class="check">&#10003;</span> Yes (all modes)</td>
+          </tr>
+          <tr>
+            <td>Plan-before-code mode</td>
+            <td><span class="warn">&#9888;</span> Manual</td>
+            <td><span class="check">&#10003;</span> Native Plan mode (Shift+Tab)</td>
+          </tr>
+          <tr>
+            <td>Autopilot / autonomous loop</td>
+            <td><span class="check">&#10003;</span> Default behavior</td>
+            <td><span class="check">&#10003;</span> Autopilot mode (experimental)</td>
+          </tr>
+          <tr>
+            <td>Multiple AI models</td>
+            <td><span class="cross">&#10007;</span> Claude only</td>
+            <td><span class="check">&#10003;</span> 11+ models (Claude, GPT, Gemini)</td>
+          </tr>
+          <tr>
+            <td>Parallel multi-agent (/fleet)</td>
+            <td><span class="cross">&#10007;</span> No</td>
+            <td><span class="check">&#10003;</span> /fleet with orchestrator</td>
+          </tr>
+          <tr>
+            <td>Issue &rarr; PR automation</td>
+            <td><span class="cross">&#10007;</span> Manual</td>
+            <td><span class="check">&#10003;</span> /delegate &rarr; coding agent &rarr; PR</td>
+          </tr>
+          <tr>
+            <td>Custom agents per repo</td>
+            <td><span class="warn">&#9888;</span> Via CLAUDE.md</td>
+            <td><span class="check">&#10003;</span> .github/agents/ with model, tools, instructions</td>
+          </tr>
+          <tr>
+            <td>MCP support</td>
+            <td><span class="check">&#10003;</span> Yes</td>
+            <td><span class="check">&#10003;</span> Yes + built-in GitHub MCP server</td>
+          </tr>
+          <tr>
+            <td>LSP integration (code intelligence)</td>
+            <td><span class="cross">&#10007;</span> No</td>
+            <td><span class="check">&#10003;</span> Go-to-definition, diagnostics, hover</td>
+          </tr>
+          <tr>
+            <td>Session export (Gist/markdown)</td>
+            <td><span class="cross">&#10007;</span> No</td>
+            <td><span class="check">&#10003;</span> /share to file or GitHub Gist</td>
+          </tr>
+          <tr>
+            <td>Tool deny lists</td>
+            <td><span class="warn">&#9888;</span> Limited</td>
+            <td><span class="check">&#10003;</span> Fine-grained --deny-tool specs</td>
+          </tr>
+          <tr>
+            <td>Bring Your Own Model</td>
+            <td><span class="cross">&#10007;</span> No</td>
+            <td><span class="check">&#10003;</span> OpenAI-compatible, Azure, Ollama</td>
+          </tr>
+          <tr>
+            <td>Auto-compaction (infinite sessions)</td>
+            <td><span class="check">&#10003;</span> Yes (200K context)</td>
+            <td><span class="check">&#10003;</span> Yes (auto at 95% limit)</td>
+          </tr>
+          <tr>
+            <td>Programmatic / scriptable</td>
+            <td><span class="check">&#10003;</span> Yes (-p flag)</td>
+            <td><span class="check">&#10003;</span> Yes (-p flag, piped input)</td>
+          </tr>
+          <tr>
+            <td>IP indemnification</td>
+            <td><span class="cross">&#10007;</span> No</td>
+            <td><span class="check">&#10003;</span> Microsoft IP indemnity</td>
+          </tr>
+          <tr>
+            <td>Enterprise policy cascade</td>
+            <td><span class="cross">&#10007;</span> No</td>
+            <td><span class="check">&#10003;</span> Enterprise &rarr; Org &rarr; Repo</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- What's New April 2026 -->
+<section class="section">
+  <div class="container-xl px-3">
+    <h2 class="section-title">What&rsquo;s New &mdash; April 2026</h2>
+    <p class="section-lead">Recent releases and announcements relevant to this discussion.</p>
+
+    <div class="grid-2">
+      <div>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>/fleet &mdash; Parallel Multi-Agent Execution <span class="Label Label--success Label--inline ml-1">Apr 1</span></h4>
+          <p>Dispatch multiple sub-agents in parallel from the CLI</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>Coding Agent: Research, Plan, and Code <span class="Label Label--success Label--inline ml-1">Apr 1</span></h4>
+          <p>Enhanced coding agent with deeper planning capabilities</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>Copilot SDK Public Preview <span class="Label Label--accent Label--inline ml-1">Apr 2</span></h4>
+          <p>Build custom Copilot-powered applications and agents</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>Organization Custom Instructions GA <span class="Label Label--success Label--inline ml-1">Apr 2</span></h4>
+          <p>Org-level copilot-instructions.md for standardized behavior</p>
+        </div>
+      </div>
+      <div>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>Org Runner &amp; Firewall Controls <span class="Label Label--success Label--inline ml-1">Apr 3</span></h4>
+          <p>Organization-level runner and firewall settings for coding agent</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>Copilot Commit Signing <span class="Label Label--success Label--inline ml-1">Apr 2026</span></h4>
+          <p>Coding agent now signs its commits for audit trail</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>Per-User CLI Metrics in Dashboards <span class="Label Label--success Label--inline ml-1">Apr 2026</span></h4>
+          <p>Organization usage reports now include CLI activity</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <h4>Claude Agent Harness in VS Code <span class="Label Label--accent Label--inline ml-1">Preview</span></h4>
+          <p>Anthropic&rsquo;s Claude Agent SDK embedded in VS Code, billed via Copilot</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Suggested Demo Flow -->
+<section class="section section-alt">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Suggested Demo Flow &mdash; 60 Minutes</h2>
+    <p class="section-lead">Step-by-step presentation guide with timing and talking points.</p>
+
+    <div class="grid-2">
+      <div>
+        <h3 class="h4 mb-3" style="color:var(--cli-accent);">Part 1: Copilot CLI (30 min)</h3>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--cli-accent);background:var(--cli-accent);"></div>
+          <h4>Open: Acknowledge Claude Code <span style="color:#8b949e;font-weight:400;">(2 min)</span></h4>
+          <p>&ldquo;You know Claude Code. Let me show you what Copilot CLI brings on top.&rdquo;</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--cli-accent);background:var(--cli-accent);"></div>
+          <h4>Live: Ask/Execute &amp; Plan Mode <span style="color:#8b949e;font-weight:400;">(8 min)</span></h4>
+          <p>Show <code>copilot</code> in a repo. Demo Shift+Tab to switch modes. Show plan output before code generation.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--cli-accent);background:var(--cli-accent);"></div>
+          <h4>Live: Model Switching <span style="color:#8b949e;font-weight:400;">(3 min)</span></h4>
+          <p>Run <code>/model</code> and switch from Claude Sonnet to GPT-5.4. Show multiplier differences.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--cli-accent);background:var(--cli-accent);"></div>
+          <h4>Live: Custom Agent <span style="color:#8b949e;font-weight:400;">(5 min)</span></h4>
+          <p>Show a <code>.github/agents/</code> file. Use <code>/agent</code> to load it. Demonstrate repo-specific AI behavior.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--cli-accent);background:var(--cli-accent);"></div>
+          <h4>Live: /fleet Parallel Execution <span style="color:#8b949e;font-weight:400;">(5 min)</span></h4>
+          <p>Demo <code>/fleet</code> breaking a task into parallel tracks. Show <code>/tasks</code> for monitoring.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--cli-accent);background:var(--cli-accent);"></div>
+          <h4>Live: /delegate &rarr; PR <span style="color:#8b949e;font-weight:400;">(4 min)</span></h4>
+          <p>Use <code>/delegate</code> to send work to the coding agent. Show PR creation on GitHub.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--cli-accent);background:var(--cli-accent);"></div>
+          <h4>Walk: Permissions <span style="color:#8b949e;font-weight:400;">(3 min)</span></h4>
+          <p>Show <code>--deny-tool</code> and approval flow. Explain wrapper script pattern.</p>
+        </div>
+      </div>
+      <div>
+        <h3 class="h4 mb-3" style="color:var(--ide-accent);">Part 2: IDE (15 min)</h3>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--ide-accent);background:var(--ide-accent);"></div>
+          <h4>Live: Agent Mode in VS Code <span style="color:#8b949e;font-weight:400;">(5 min)</span></h4>
+          <p>Show the agent loop: describe task, watch it plan, edit files, run terminal, self-correct.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--ide-accent);background:var(--ide-accent);"></div>
+          <h4>Live: Claude Agent Harness <span style="color:#8b949e;font-weight:400;">(5 min)</span></h4>
+          <p>Switch to Claude third-party agent. Show CLAUDE.md, <code>/memory</code>, <code>/agents</code>. &ldquo;This is Claude Code inside VS Code.&rdquo;</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--ide-accent);background:var(--ide-accent);"></div>
+          <h4>Quick: Core Features <span style="color:#8b949e;font-weight:400;">(5 min)</span></h4>
+          <p>Ghost text, next-edit suggestions, inline chat, model picker, MCP config, checkpoints.</p>
+        </div>
+
+        <h3 class="h4 mb-3" style="color:var(--web-accent);margin-top:24px;">Part 3: GitHub.com (15 min)</h3>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--web-accent);background:var(--web-accent);"></div>
+          <h4>Walk: Enterprise AI Controls <span style="color:#8b949e;font-weight:400;">(5 min)</span></h4>
+          <p>Show the admin console: model policies, agent control, content exclusions, MCP policies.</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--web-accent);background:var(--web-accent);"></div>
+          <h4>Live: Code Review Agent <span style="color:#8b949e;font-weight:400;">(4 min)</span></h4>
+          <p>Show AI reviewer on a PR. Show auto-assignment config. Click &ldquo;Implement suggestion.&rdquo;</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--web-accent);background:var(--web-accent);"></div>
+          <h4>Live: Assign Issue to Copilot <span style="color:#8b949e;font-weight:400;">(4 min)</span></h4>
+          <p>Assign an issue to Copilot, watch sandbox spin up, PR created. This is the &ldquo;wow moment.&rdquo;</p>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color:var(--brand-success);background:var(--brand-success);"></div>
+          <h4>Close: Q&amp;A and Next Steps <span style="color:#8b949e;font-weight:400;">(2 min)</span></h4>
+          <p>Summarize, answer questions, propose pilot on a non-sensitive repo.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Talk Tracks -->
+<section class="section">
+  <div class="container-xl px-3">
+    <h2 class="section-title">Talk Tracks for This Session</h2>
+    <p class="section-lead">Ready-to-use narratives for key moments in the presentation.</p>
+
+    <div class="talk-track">
+      <p class="audience">Opening &mdash; For Claude Code Users</p>
+      <blockquote>&ldquo;You&rsquo;re already getting great results with Claude Code. Today I want to show you GitHub Copilot CLI &mdash; the same terminal-first agentic experience, with Claude models built in, multi-model flexibility, parallel agents, and a direct bridge to GitHub&rsquo;s PR workflow.&rdquo;</blockquote>
+    </div>
+
+    <div class="talk-track">
+      <p class="audience">CLI Demo &mdash; Plan Mode</p>
+      <blockquote>&ldquo;Plan mode is unique to Copilot CLI. Before it writes a single line of code, it shows you the full implementation plan. Your teams can enforce a &lsquo;plan first, code second&rsquo; discipline &mdash; especially important for enterprise engineering standards.&rdquo;</blockquote>
+    </div>
+
+    <div class="talk-track">
+      <p class="audience">Claude Agent Harness &mdash; Key Message</p>
+      <blockquote>&ldquo;This is the part that surprised most Claude Code users: you can run Anthropic&rsquo;s native Claude agent &mdash; with CLAUDE.md, hooks, and the full SDK &mdash; directly inside VS Code, billed through your existing Copilot license. No separate Anthropic account. No separate extension. It&rsquo;s Claude Code without the separate toolchain.&rdquo;</blockquote>
+    </div>
+
+    <div class="talk-track">
+      <p class="audience">Governance &mdash; For IT Leadership</p>
+      <blockquote>&ldquo;Everything you see here &mdash; which models are available, which agents can run, what files are excluded, who has access &mdash; is controlled from one admin dashboard with a three-tier policy cascade. Enterprise sets the guardrails, orgs configure within them, repos inherit. No custom RBAC pipeline needed.&rdquo;</blockquote>
+    </div>
+
+    <div class="talk-track">
+      <p class="audience">Closing</p>
+      <blockquote>&ldquo;Copilot CLI gives you the terminal-first agentic workflow you know from Claude Code. The IDE gives you Claude&rsquo;s native agent harness alongside Copilot&rsquo;s own agent. GitHub.com ties it all together with code review, issue-to-PR automation, and enterprise governance. One platform, one license, all the models.&rdquo;</blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container-xl px-3">
+    <h3 style="color:#f0f6fc; font-size:18px; margin-bottom:16px;">Sources &amp; References</h3>
+    <div class="grid-3" style="font-size:13px;">
+      <div>
+        <p style="font-weight:600;color:#f0f6fc;margin-bottom:8px;">Copilot CLI</p>
+        <p><a href="https://docs.github.com/en/copilot/github-copilot-in-the-cli">Copilot CLI Documentation</a></p>
+        <p><a href="https://github.blog/ai-and-ml/github-copilot/power-agentic-workflows-in-your-terminal-with-github-copilot-cli/">Agentic Workflows in the Terminal</a></p>
+        <p><a href="https://docs.github.com/en/copilot/github-copilot-in-the-cli/using-copilot-cli-agent-mode">CLI Agent Mode Usage</a></p>
+        <p><a href="https://github.blog/changelog/2025-05-19-github-copilot-in-the-cli-is-now-generally-available/">CLI General Availability</a></p>
+      </div>
+      <div>
+        <p style="font-weight:600;color:#f0f6fc;margin-bottom:8px;">IDE &amp; Agents</p>
+        <p><a href="https://code.visualstudio.com/docs/copilot/overview">VS Code Copilot Overview</a></p>
+        <p><a href="https://code.visualstudio.com/docs/copilot/copilot-extensibility-overview">Copilot Extensibility</a></p>
+        <p><a href="https://github.blog/ai-and-ml/github-copilot/github-copilot-the-agent-awakens/">The Agent Awakens</a></p>
+        <p><a href="https://docs.github.com/en/copilot/reference/ai-models/supported-models">Supported AI Models</a></p>
+      </div>
+      <div>
+        <p style="font-weight:600;color:#f0f6fc;margin-bottom:8px;">GitHub.com AI</p>
+        <p><a href="https://docs.github.com/en/copilot/concepts/agents/enterprise-management">Enterprise Agent Management</a></p>
+        <p><a href="https://docs.github.com/en/copilot/responsible-use-of-github-copilot-features/responsible-use-of-github-copilot-code-review">Code Review Agent</a></p>
+        <p><a href="https://github.blog/changelog/2025-09-25-copilot-coding-agent-is-now-generally-available/">Coding Agent GA</a></p>
+        <p><a href="https://docs.github.com/en/enterprise-cloud@latest/admin/enforcing-policies/enforcing-policies-for-your-enterprise/enforcing-policies-for-github-copilot-in-your-enterprise">Enterprise Policies</a></p>
+      </div>
+    </div>
+    <hr style="border-color:#30363d; margin:24px 0;">
+    <p style="font-size:12px;">GitHub Copilot technical deep dive &mdash; April 2026</p>
+  </div>
+</footer>
+
+</body>
+</html>
