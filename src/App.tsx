@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage';
 import StudentsPage from './pages/StudentsPage';
 import CoursesPage from './pages/CoursesPage';
 import TeachersPage from './pages/TeachersPage';
+import DepartmentsPage from './pages/DepartmentsPage';
 import AssistantPage from './pages/AssistantPage';
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
           <Route path="students" element={<StudentsPage />} />
           <Route path="courses" element={<CoursesPage />} />
           <Route path="teachers" element={<TeachersPage />} />
+          <Route path="departments" element={<DepartmentsPage />} />
           <Route path="assistant" element={<AssistantPage />} />
         </Route>
       </Routes>
