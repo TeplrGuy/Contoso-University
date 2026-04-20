@@ -13,8 +13,40 @@ jobs:
           node-version: 20
           cache: npm
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tests/load/requirements.txt
+
       - name: Install dependencies
         run: npm ci
 
+      - name: Install load test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/load/requirements.txt
+
+      - name: Verify load test coverage config
+        run: npm run load:test:coverage
+
       - name: Verify build
         run: npm run build
+
+      - name: Start preview server
+        run: npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/copilot-setup-preview.log 2>&1 &
+
+      - name: Wait for preview server
+        run: |
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4173/ || true)
+            if [ "$STATUS" = "200" ]; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/copilot-setup-preview.log || true
+          exit 1
+
+      - name: Verify Locust execution
+        run: python -m locust -f tests/load/scenarios/test_home.py --host=http://127.0.0.1:4173 --headless -u 1 -r 1 -t 5s --only-summary
