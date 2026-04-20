@@ -1,10 +1,12 @@
+import type { DepartmentName } from './departments';
+
 export interface Course {
   id: number;
   code: string;
   title: string;
   description: string;
   credits: number;
-  department: string;
+  department: DepartmentName;
   students: number;
 }
 

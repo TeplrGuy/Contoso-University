@@ -1,8 +1,10 @@
+import type { DepartmentName } from './departments';
+
 export interface Teacher {
   id: number;
   name: string;
   email: string;
-  department: string;
+  department: DepartmentName;
   office: string;
   role: string;
 }
