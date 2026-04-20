@@ -18,3 +18,16 @@ jobs:
 
       - name: Verify build
         run: npm run build
+
+      # Pre-install Python load-testing tools so the Copilot coding agent
+      # does not need outbound access to PyPI (pypi.org / files.pythonhosted.org)
+      # at task time. Setup steps run BEFORE the agent firewall is enforced.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Pre-install load test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install locust
