@@ -36,6 +36,35 @@ This project showcases **8 pillars** of the GitHub Copilot ecosystem:
 - **Testing**: Playwright (24 e2e tests)
 - **CI/CD**: GitHub Actions → Azure Web Apps
 - **Infrastructure**: Terraform (Azure ACR + Web App)
+
+## Application Insights Telemetry
+
+The app ships browser-side telemetry via the [Azure Application Insights JavaScript SDK](https://learn.microsoft.com/azure/azure-monitor/app/javascript).
+
+### Local development (telemetry off by default)
+
+1. Copy `.env.example` → `.env.local`
+2. Paste your connection string from **Azure portal → Application Insights → Overview → Connection String**
+3. Restart `npm run dev`
+
+```env
+VITE_APPINSIGHTS_CONNECTION_STRING=InstrumentationKey=...;IngestionEndpoint=...
+```
+
+Omitting or leaving the variable blank disables the SDK entirely — no errors, no network calls.
+
+### Azure deployment
+
+Add `VITE_APPINSIGHTS_CONNECTION_STRING` as an **App Service Application Setting** (or a GitHub Actions secret → `env:` in your build step). Vite bakes the value in at build time.
+
+### What is tracked
+
+| Signal | Detail |
+|--------|--------|
+| Page views | Fired on every React Router navigation |
+| Page visit time | Time spent on each page |
+| AJAX dependency calls | Outbound fetch/XHR requests |
+| Unhandled JS exceptions | Auto-collected by the SDK |
 # Contoso University
 
 A production-ready Student Information System demonstrating modern cloud-native development practices with React, TypeScript, Azure, and a fully automated GitHub Actions CI/CD pipeline — including an **Agentic Workflow** powered by GitHub Copilot.
