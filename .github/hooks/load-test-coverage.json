@@ -1,0 +1,29 @@
+{
+  "minimumCoveragePercent": 100,
+  "routes": [
+    {
+      "route": "/",
+      "scenario": "tests/load/scenarios/test_home.py"
+    },
+    {
+      "route": "/students",
+      "scenario": "tests/load/scenarios/test_students.py"
+    },
+    {
+      "route": "/courses",
+      "scenario": "tests/load/scenarios/test_courses.py"
+    },
+    {
+      "route": "/teachers",
+      "scenario": "tests/load/scenarios/test_teachers.py"
+    },
+    {
+      "route": "/departments",
+      "scenario": "tests/load/scenarios/test_departments.py"
+    },
+    {
+      "route": "/assistant",
+      "scenario": "tests/load/scenarios/test_assistant.py"
+    }
+  ]
+}

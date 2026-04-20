@@ -11,6 +11,8 @@
     "test": "npx playwright test",
     "test:e2e": "npx playwright test",
     "test:list": "npx playwright test --list",
+    "load:test": "python -m locust -f tests/load/locustfile.py --host=http://127.0.0.1:4173",
+    "load:test:coverage": "bash .github/hooks/scripts/load-test-coverage.sh --strict",
     "copilot:audit": "bash scripts/copilot/audit.sh",
     "copilot:docs": "bash scripts/copilot/document.sh",
     "copilot:onboard": "bash scripts/copilot/onboard.sh",

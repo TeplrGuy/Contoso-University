@@ -26,6 +26,7 @@ dist-ssr
 # Playwright
 test-results/
 playwright-report/
+tests/load/results/
 
 # Copilot hooks temp files
 .github/hooks/.pre-tool-snapshot
