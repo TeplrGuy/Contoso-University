@@ -202,6 +202,7 @@ The frontend is a React single-page application (SPA) with client-side routing p
 
 - [Node.js](https://nodejs.org/) v20 or higher
 - [npm](https://www.npmjs.com/)
+- [Python](https://www.python.org/) 3.12+ (for Locust load testing)
 
 ### Getting Started
 
