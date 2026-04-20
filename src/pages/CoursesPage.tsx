@@ -1,12 +1,12 @@
 import { BookOpen, Users } from 'lucide-react';
 import { courses } from '../data/courses';
-import { getDepartmentColor } from '../data/departments';
+import { getDepartmentColor, type DepartmentName } from '../data/departments';
 
 export default function CoursesPage() {
-  const deptCounts = courses.reduce<Record<string, number>>((acc, c) => {
+  const deptCounts = courses.reduce<Record<DepartmentName, number>>((acc, c) => {
     acc[c.department] = (acc[c.department] || 0) + 1;
     return acc;
-  }, {});
+  }, {} as Record<DepartmentName, number>);
 
   return (
     <div>
@@ -50,7 +50,7 @@ export default function CoursesPage() {
           {Object.entries(deptCounts).map(([dept, count]) => (
             <span
               key={dept}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${getDepartmentColor(dept)}`}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${getDepartmentColor(dept as DepartmentName)}`}
             >
               {dept}
               <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/50 text-xs font-bold">

@@ -19,6 +19,6 @@ export const departments: Department[] = [
   { id: 5, name: 'Physics', color: 'bg-red-100 text-red-800' },
 ];
 
-export function getDepartmentColor(department: string): string {
+export function getDepartmentColor(department: DepartmentName): string {
   return departments.find(d => d.name === department)?.color ?? 'bg-gray-100 text-gray-800';
 }

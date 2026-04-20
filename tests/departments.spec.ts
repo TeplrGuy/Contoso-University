@@ -12,6 +12,7 @@ test.describe('Departments Page', () => {
   test('renders department cards', async ({ page }) => {
     const cards = page.locator('[data-testid="department-card"]');
     await expect(cards.first()).toBeVisible();
+    await expect(cards).toHaveCount(5);
   });
 
   test('shows department names', async ({ page }) => {
