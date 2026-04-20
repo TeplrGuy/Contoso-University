@@ -1,4 +1,7 @@
-"""Contoso University load-test entrypoint."""
+"""Contoso University load-test entrypoint.
+
+Imports are intentionally used for Locust class discovery.
+"""
 
 from scenarios import (  # noqa: F401
     AssistantPageUser,
