@@ -65,7 +65,8 @@ Add `VITE_APPINSIGHTS_CONNECTION_STRING` as an **App Service Application Setting
 | Page visit time | Time spent on each page |
 | AJAX dependency calls | Outbound fetch/XHR requests |
 | Unhandled JS exceptions | Auto-collected by the SDK |
-# Contoso University
+
+---
 
 A production-ready Student Information System demonstrating modern cloud-native development practices with React, TypeScript, Azure, and a fully automated GitHub Actions CI/CD pipeline — including an **Agentic Workflow** powered by GitHub Copilot.
 
