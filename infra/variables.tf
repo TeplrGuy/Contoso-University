@@ -1,3 +1,10 @@
+variable "appinsights_connection_string" {
+  description = "Azure Application Insights connection string. Set this via TF_VAR_appinsights_connection_string or a .tfvars file. The value is injected as the VITE_APPINSIGHTS_CONNECTION_STRING App Service Application Setting at deploy time so the browser SDK can send telemetry. Leave empty to disable telemetry."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "subscription_id" {
   description = "Azure Subscription ID"
   type        = string

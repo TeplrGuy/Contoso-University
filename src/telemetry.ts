@@ -11,9 +11,7 @@ if (connectionString) {
   appInsights = new ApplicationInsights({
     config: {
       connectionString,
-      // Route tracking is handled manually by AppInsightsRouteTracker so that
-      // single-page navigation events map cleanly to React Router paths.
-      enableAutoRouteTracking: false,
+      enableAutoRouteTracking: true,
       autoTrackPageVisitTime: true,
       enableCorsCorrelation: true,
       enableRequestHeaderTracking: true,

@@ -33,8 +33,12 @@ resource "azurerm_linux_web_app" "app" {
   }
 
   app_settings = {
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE = "false"
-    DOCKER_ENABLE_CI                    = "true"
+    WEBSITES_ENABLE_APP_SERVICE_STORAGE  = "false"
+    DOCKER_ENABLE_CI                     = "true"
+    # Application Insights connection string — sourced from var.appinsights_connection_string.
+    # Set TF_VAR_appinsights_connection_string (or a .tfvars file) to enable browser telemetry.
+    # Vite bakes this value into the static bundle at build time; it is NOT a runtime secret.
+    VITE_APPINSIGHTS_CONNECTION_STRING   = var.appinsights_connection_string
   }
 
   lifecycle {
