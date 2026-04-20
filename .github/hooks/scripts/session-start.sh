@@ -49,4 +49,10 @@ for page in src/pages/*.tsx; do
 done
 
 echo ""
+if [ -f ".github/hooks/scripts/load-test-coverage.sh" ]; then
+  echo "📈 Load test coverage check:"
+  bash .github/hooks/scripts/load-test-coverage.sh || true
+  echo ""
+fi
+
 echo "🔧 Session ready. Remember: every UI change should include test updates!"

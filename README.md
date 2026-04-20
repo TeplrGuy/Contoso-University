@@ -10,6 +10,8 @@ npm run dev          # Start dev server at http://localhost:5173
 npm run build        # Production build
 npm test             # Run Playwright e2e tests
 npm run lint         # Run ESLint
+python -m pip install -r tests/load/requirements.txt
+npm run load:test:local  # Run Locust load tests (requires npm run preview in another terminal)
 ```
 
 ## GitHub Copilot Integrations
@@ -33,7 +35,7 @@ This project showcases **8 pillars** of the GitHub Copilot ecosystem:
 
 - **Frontend**: React 19, TypeScript, Tailwind CSS
 - **Build**: Vite 7
-- **Testing**: Playwright (24 e2e tests)
+- **Testing**: Playwright (e2e), Locust (load testing)
 - **CI/CD**: GitHub Actions → Azure Web Apps
 - **Infrastructure**: Terraform (Azure ACR + Web App)
 
@@ -200,6 +202,7 @@ The frontend is a React single-page application (SPA) with client-side routing p
 
 - [Node.js](https://nodejs.org/) v20 or higher
 - [npm](https://www.npmjs.com/)
+- [Python](https://www.python.org/) 3.12+ (for Locust load testing)
 
 ### Getting Started
 
@@ -225,6 +228,31 @@ The dev server starts at `http://localhost:5173` with Hot Module Replacement ena
 | `npm run build` | Type-check and build for production (`dist/`) |
 | `npm run lint` | Run ESLint across all source files |
 | `npm run preview` | Serve the production build locally |
+| `npm run load:test` | Alias for `npm run load:test:local` |
+| `npm run load:test:local` | Run Locust scenarios against `http://127.0.0.1:4173` |
+| `npm run load:test:coverage` | Enforce route-to-load-test coverage threshold |
+
+---
+
+### Load Testing (Locust)
+
+Load tests are in `tests/load/scenarios/test_*.py` and auto-discovered by `.github/workflows/load-testing.yml`.
+
+Run locally:
+
+```bash
+# Terminal 1: build + preview app
+npm run build
+npm run preview -- --host 127.0.0.1 --port 4173
+
+# Terminal 2: install and execute Locust
+python -m pip install -r tests/load/requirements.txt
+npm run load:test
+```
+
+GitHub Actions:
+- `Load Testing` workflow runs route coverage checks and dynamically executes each `test_*.py` scenario.
+- Manual runs can also execute the same scenarios against a deployed Azure URL by setting `run_azure_target_tests=true` and `target_url`.
 
 ---
 
