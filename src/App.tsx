@@ -5,14 +5,12 @@ import StudentsPage from './pages/StudentsPage';
 import CoursesPage from './pages/CoursesPage';
 import TeachersPage from './pages/TeachersPage';
 import AssistantPage from './pages/AssistantPage';
-import AppInsightsRouteTracker from './components/AppInsightsRouteTracker';
 import AppInsightsErrorBoundary from './components/AppInsightsErrorBoundary';
 
 export default function App() {
   return (
     <AppInsightsErrorBoundary>
       <BrowserRouter>
-        <AppInsightsRouteTracker />
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<HomePage />} />

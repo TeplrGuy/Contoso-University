@@ -61,10 +61,11 @@ Add `VITE_APPINSIGHTS_CONNECTION_STRING` as an **App Service Application Setting
 
 | Signal | Detail |
 |--------|--------|
-| Page views | Fired on every React Router navigation |
+| Page views | Auto-tracked by the SDK on every React Router navigation (`enableAutoRouteTracking: true`) |
 | Page visit time | Time spent on each page |
 | AJAX dependency calls | Outbound fetch/XHR requests |
-| Unhandled JS exceptions | Auto-collected by the SDK |
+| React render errors | Caught by `AppInsightsErrorBoundary` and reported via `trackException` with component stack |
+| Other JS exceptions | Auto-collected by the SDK for uncaught errors outside the React tree |
 
 ---
 
