@@ -190,7 +190,7 @@ jobs:
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$TARGET_URL" || true)
           echo "Target status: $STATUS"
-          if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 400 ]; then
+          if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 300 ]; then
             echo "::error::Target URL did not return a successful status code"
             exit 1
           fi

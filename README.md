@@ -11,7 +11,7 @@ npm run build        # Production build
 npm test             # Run Playwright e2e tests
 npm run lint         # Run ESLint
 python -m pip install -r tests/load/requirements.txt
-npm run load:test    # Run Locust load tests (requires npm run preview in another terminal)
+npm run load:test:local  # Run Locust load tests (requires npm run preview in another terminal)
 ```
 
 ## GitHub Copilot Integrations
@@ -228,7 +228,8 @@ The dev server starts at `http://localhost:5173` with Hot Module Replacement ena
 | `npm run build` | Type-check and build for production (`dist/`) |
 | `npm run lint` | Run ESLint across all source files |
 | `npm run preview` | Serve the production build locally |
-| `npm run load:test` | Run Locust scenarios against `http://127.0.0.1:4173` |
+| `npm run load:test` | Alias for `npm run load:test:local` |
+| `npm run load:test:local` | Run Locust scenarios against `http://127.0.0.1:4173` |
 | `npm run load:test:coverage` | Enforce route-to-load-test coverage threshold |
 
 ---
