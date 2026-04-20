@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
-import { Users, BookOpen, UserCheck, GraduationCap, ArrowRight } from 'lucide-react';
+import { Users, BookOpen, UserCheck, GraduationCap, Building2, ArrowRight } from 'lucide-react';
 import { students } from '../data/students';
 import { courses } from '../data/courses';
 import { teachers } from '../data/teachers';
+import { departments } from '../data/departments';
 
 const totalEnrollments = students.reduce((sum, s) => sum + s.courses, 0);
 
@@ -11,12 +12,14 @@ const stats = [
   { label: 'Active Courses', value: courses.length, icon: BookOpen, color: 'bg-green-500', bgColor: 'bg-green-50' },
   { label: 'Faculty Members', value: teachers.length, icon: UserCheck, color: 'bg-purple-500', bgColor: 'bg-purple-50' },
   { label: 'Total Enrollments', value: totalEnrollments, icon: GraduationCap, color: 'bg-orange-500', bgColor: 'bg-orange-50' },
+  { label: 'Departments', value: departments.length, icon: Building2, color: 'bg-indigo-500', bgColor: 'bg-indigo-50' },
 ];
 
 const quickLinks = [
   { to: '/students', label: 'Students', description: 'View and manage student records', icon: Users, color: 'text-blue-600' },
   { to: '/courses', label: 'Courses', description: 'Browse available courses and programs', icon: BookOpen, color: 'text-green-600' },
   { to: '/teachers', label: 'Teachers', description: 'Faculty directory and information', icon: UserCheck, color: 'text-purple-600' },
+  { to: '/departments', label: 'Departments', description: 'Academic departments and programs', icon: Building2, color: 'text-indigo-600' },
 ];
 
 export default function HomePage() {
@@ -29,7 +32,7 @@ export default function HomePage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-10">
         {stats.map(({ label, value, icon: Icon, color, bgColor }) => (
           <div key={label} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center gap-4">
             <div className={`${bgColor} p-3 rounded-lg`}>
@@ -46,7 +49,7 @@ export default function HomePage() {
       {/* Quick Access */}
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Access</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {quickLinks.map(({ to, label, description, icon: Icon, color }) => (
             <Link
               key={to}
