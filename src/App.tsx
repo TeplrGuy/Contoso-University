@@ -6,20 +6,23 @@ import CoursesPage from './pages/CoursesPage';
 import TeachersPage from './pages/TeachersPage';
 import DepartmentsPage from './pages/DepartmentsPage';
 import AssistantPage from './pages/AssistantPage';
+import AppInsightsErrorBoundary from './components/AppInsightsErrorBoundary';
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
-          <Route path="students" element={<StudentsPage />} />
-          <Route path="courses" element={<CoursesPage />} />
-          <Route path="teachers" element={<TeachersPage />} />
-          <Route path="departments" element={<DepartmentsPage />} />
-          <Route path="assistant" element={<AssistantPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AppInsightsErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<HomePage />} />
+            <Route path="students" element={<StudentsPage />} />
+            <Route path="courses" element={<CoursesPage />} />
+            <Route path="teachers" element={<TeachersPage />} />
+            <Route path="departments" element={<DepartmentsPage />} />
+            <Route path="assistant" element={<AssistantPage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AppInsightsErrorBoundary>
   );
 }
